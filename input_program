@@ -1,0 +1,14 @@
+//testing
+//_ is blank
+//first state in the list is the initial state
+
+state 0:
+_ -> ACCEPT
+a -> q1, x, r
+
+state 1:
+b -> q1, x, r
+
+state 2:
+d -> REJECT
+c -> q1, x, r
