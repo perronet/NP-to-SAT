@@ -1,4 +1,4 @@
-#ifndef TM_LIB_H//include guard
+#ifndef TM_LIB_H
 #define TM_LIB_H
 
 #include <stdio.h>
@@ -8,11 +8,26 @@
 #include <ctype.h>
 #include <string.h>
 
+//Macros
+
 #define true 1
 #define false 0
 #define forever for(;;)
 
+//Structures
+
 typedef char bool;
+
+typedef struct char_node{ //Used mostly for the machine's tape
+	char elem;
+	struct char_node * prev;
+	struct char_node * next;
+} char_node;
+
+typedef struct int_node{
+	int elem;
+	struct int_node * next;
+} int_node;
 
 enum action{
 	LEFT,
@@ -23,25 +38,42 @@ enum action{
 };
 
 typedef struct curr_status{
-	char state;
+	int state;
 	char symbol;
 } curr_status;
 
 typedef struct transition{
-	char state;
+	int state;
 	char symbol;
 	enum action move;
 } transition;
 
-typedef struct tm_properties{
-	//alphabet
-	//states
-	//input_string
+typedef struct tm_properties{ //Resources used to reduce the problem to a boolean formula
+	char_node * alphabet;
+	int_node * states;
+	char * input_string;
 	int tot_steps;
 } tm_properties;
 
-//listcpy
+//Functions
 
-//deleteDuplicates
+char_node * listadd(char_node * l, char e);
+
+void listprint(char_node * l);
+
+char * listcpystring(char_node * l);
+
+void listdeallocate(char_node * l);
+
+int listlength(char_node * l);
+
+// char_node * listnext(char_node * n);
+// char_node * listprev(char_node * n);
+
+// int * intListToArray(int_node * l);
+
+// bool list_contains();
+
+// bool array_contains();
 
 #endif

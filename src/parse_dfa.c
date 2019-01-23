@@ -7,151 +7,154 @@
 transition * divideString(char * str);
 
 int main(int argc, char const *argv[]){
-	FILE * input = fopen("input_program", "r");
-	FILE * input_clean = fopen("input_clean", "w+");
-	FILE * output = fopen("delta.c", "w");
-	transition * wellformed_transition;
-	int i;
-	char c;
-	bool errorOccurred;
-	char * str_state = malloc(6*sizeof(char));  						//"state"
-	char * str_acc = malloc(8*sizeof(char));							//"ACCEPT\n or REJECT\n"
-	char * str_arrow = malloc(3*sizeof(char));  				     	//"->"
-	char * str_transition = malloc(MAX_TRANSITION_LENGTH*sizeof(char)); //"integer,char,l or r\n"
-	char * str_state_num = malloc((MAX_INT_DIGITS+1)*sizeof(char));     //integer corresponding to a state
+    FILE * input = fopen("input_program", "r");
+    FILE * input_clean = fopen("input_clean", "w+");
+    FILE * output = fopen("delta.c", "w");
+    transition * wellformed_transition;
+    int i;
+    char c;
+    bool errorOccurred;
 
-	fprintf(output, HEADER);
+    //Buffers
+    char * str_state = malloc(6*sizeof(char));                          //"state"
+    char * str_acc = malloc(8*sizeof(char));                            //"ACCEPT\n or REJECT\n"
+    char * str_arrow = malloc(3*sizeof(char));                          //"->"
+    char * str_transition = malloc(MAX_TRANSITION_LENGTH*sizeof(char)); //"integer,char,l or r\n"
+    char * str_state_num = malloc((MAX_INT_DIGITS+1)*sizeof(char));     //integer corresponding to a state
 
-	//Remove comments and whitespace
-	while((c = fgetc(input)) != EOF){
-		switch(c){
-			case '/':
-				c = fgetc(input);
-				if(c == '/'){
-					while((c = fgetc(input)) != EOF && c != '\n'){}
-				}else{
-					fprintf(input_clean, "/", c);
-				}
-				if(c != EOF)
-					fseek(input, -1, SEEK_CUR);
-			break;
+    fprintf(output, HEADER);
 
-			case ' ':
-				while(c == ' '){
-					c = fgetc(input);
-				}
-				if(c != EOF)
-					fseek(input, -1, SEEK_CUR);
-			break;
+    //Remove comments and whitespace
+    while((c = fgetc(input)) != EOF){
+        switch(c){
+            case '/':
+                c = fgetc(input);
+                if(c == '/'){
+                    while((c = fgetc(input)) != EOF && c != '\n'){}
+                }else{
+                    fprintf(input_clean, "/", c);
+                }
+                if(c != EOF)
+                    fseek(input, -1, SEEK_CUR);
+            break;
 
-			default:
-				fprintf(input_clean, "%c", c);
-			break;	
-		}
-	}
+            case ' ':
+                while(c == ' '){
+                    c = fgetc(input);
+                }
+                if(c != EOF)
+                    fseek(input, -1, SEEK_CUR);
+            break;
 
-	//Parse user input into c code
-	rewind(input_clean);
-	errorOccurred = false;
-	while((c = fgetc(input_clean)) != EOF && !errorOccurred){
-		if(c != '\n'){
-			fseek(input_clean, -1, SEEK_CUR);
-			if(!strcmp(fgets(str_state, 6, input_clean), "state")){ //state found
+            default:
+                fprintf(input_clean, "%c", c);
+            break;  
+        }
+    }
 
-				c = fgetc(input_clean); //c != ':' && c != '\n'
-				for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){ //get state number
-					str_state_num[i] = c;
-					c = fgetc(input_clean);
-				}
-				str_state_num[i] = '\0';
+    //Parse user input into c code
+    rewind(input_clean);
+    errorOccurred = false;
+    while((c = fgetc(input_clean)) != EOF && !errorOccurred){
+        if(c != '\n'){
+            fseek(input_clean, -1, SEEK_CUR);
+            if(!strcmp(fgets(str_state, 6, input_clean), "state")){ //state found
 
-				if(c != EOF && str_state_num[0] != '\0'){
-					printf("State found %d\n", atoi(str_state_num));
-					fprintf(output, "case %d:\n", atoi(str_state_num));
-					str_state_num[0] = '\0';
-				}else{
-					errorOccurred = true;
-				}
+                c = fgetc(input_clean);
+                for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){ //get state number
+                    str_state_num[i] = c;
+                    c = fgetc(input_clean);
+                }
+                str_state_num[i] = '\0';
 
-				while(c != EOF && c != '\n'){
-					c = fgetc(input_clean);
-				}
-				c = fgetc(input_clean); //c will now be the input symbol or an empty line
-				fprintf(output, "switch(symbol){\n");
+                if(c != EOF && str_state_num[0] != '\0'){
+                    printf("State found %d\n", atoi(str_state_num));
+                    fprintf(output, "case %d:\n", atoi(str_state_num));
+                    str_state_num[0] = '\0';
+                }else{
+                    errorOccurred = true;
+                }
 
-				//Read each input line until an empty line is found
-				while(c != EOF && c != '\n' && !errorOccurred){
-						fprintf(output, "case '%c':\n", c);
-						//Read arrow and output of the transition
-						if(!strcmp(fgets(str_arrow, 3, input_clean), "->")){
-							str_acc = fgets(str_acc, 8, input_clean);
-							if(!strcmp(str_acc, "ACCEPT\n")){
-								fprintf(output, "t->move = ACCEPT;\n");
-							}else if(!strcmp(str_acc, "REJECT\n")){
-								fprintf(output, "t->move = REJECT;\n");
-							}else{
-								//Must read exactly "integer,char,l or r\n" according to the syntax 
-								fseek(input_clean, -6, SEEK_CUR);
-								wellformed_transition = divideString(fgets(str_transition, 7, input_clean)); //TODO implement longer integers
-								if(wellformed_transition->move != ERROR){
-									fprintf(output, "t->state = %d;\n", wellformed_transition->state);
-									fprintf(output, "t->symbol = '%c';\n", wellformed_transition->symbol);
-									fprintf(output, "t->move = %d;\n", wellformed_transition->move);
-								}else{
-									errorOccurred = true;
-								}
-							}
-						}else{
-							errorOccurred = true;
-						}
+                while(c != EOF && c != '\n'){
+                    c = fgetc(input_clean);
+                }
+                c = fgetc(input_clean); //c will now be the input symbol or an empty line
+                fprintf(output, "switch(symbol){\n");
 
-						fprintf(output, "break;\n");
-						c = fgetc(input_clean);
-				}
-				fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nbreak;\n");
-			}
-		}
-	}
-	fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nreturn t;\n}");
+                //Read each input line until an empty line is found
+                while(c != EOF && c != '\n' && !errorOccurred){
+                        fprintf(output, "case '%c':\n", c);
+                        //Read arrow and output of the transition
+                        if(!strcmp(fgets(str_arrow, 3, input_clean), "->")){
+                            str_acc = fgets(str_acc, 8, input_clean);
+                            if(!strcmp(str_acc, "ACCEPT\n")){
+                                fprintf(output, "t->move = ACCEPT;\n");
+                            }else if(!strcmp(str_acc, "REJECT\n")){
+                                fprintf(output, "t->move = REJECT;\n");
+                            }else{
+                                //Must read exactly "integer,char,l or r\n" according to the syntax 
+                                fseek(input_clean, -6, SEEK_CUR);
+                                wellformed_transition = divideString(fgets(str_transition, 7, input_clean)); //TODO implement longer integers
+                                if(wellformed_transition->move != ERROR){
+                                    fprintf(output, "t->state = %d;\n", wellformed_transition->state);
+                                    fprintf(output, "t->symbol = '%c';\n", wellformed_transition->symbol);
+                                    fprintf(output, "t->move = %d;\n", wellformed_transition->move);
+                                }else{
+                                    errorOccurred = true;
+                                }
+                            }
+                        }else{
+                            errorOccurred = true;
+                        }
 
-	//Deallocate
-	free(wellformed_transition);
-	free(str_transition);
-	free(str_arrow);
-	free(str_acc);
-	free(str_state);
-	fclose(output);
-	fclose(input_clean);
-	fclose(input);
-	system("rm input_clean");
+                        fprintf(output, "break;\n");
+                        c = fgetc(input_clean);
+                }
+                fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nbreak;\n");
+            }
+        }
+    }
+    fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nreturn t;\n}");
 
-	if(!errorOccurred){
-		//Compile the generated delta.c and execute tm
-		system("gcc -c delta.c");
-		system("gcc -D DELTA -o tm.out delta.o tm.c");
-		execve("./tm.out", NULL, NULL);
-		perror("Could not execve");
-		return EXIT_FAILURE;
-	}else{
-		perror("Error: parse failed, check input syntax\n");
-		system("rm delta.c");
-		return EXIT_FAILURE;
-	}
+    //Deallocate
+    free(wellformed_transition);
+    free(str_transition);
+    free(str_arrow);
+    free(str_acc);
+    free(str_state);
+    fclose(output);
+    fclose(input_clean);
+    fclose(input);
+    system("rm input_clean");
+
+    if(!errorOccurred){
+        //Compile the generated delta.c and execute tm
+        system("gcc -c delta.c");
+        system("gcc -c tm_lib.c");
+        system("gcc -D DELTA -o tm.out tm_lib.o delta.o tm.c");
+        execve("./tm.out", NULL, NULL);
+        perror("Could not execve");
+        return EXIT_FAILURE;
+    }else{
+        perror("Error: parse failed, check input syntax\n");
+        system("rm delta.c");
+        return EXIT_FAILURE;
+    }
 }
 
 transition * divideString(char * str){ //"integer,char,l or r\n" 
-	transition * r = malloc(sizeof(transition));
+    transition * r = malloc(sizeof(transition));
     int offset;
 
     //TODO implement this function
 
-	// if(str[offset+1] == ',' && str[offset+3] == ',' && str[offset+5] == '\n'){
-		r->state=2;
-		r->symbol='c';
-		r->move=LEFT;
-	// }else{
-	// 	r->move = ERROR;
-	// }
+    // if(str[offset+1] == ',' && str[offset+3] == ',' && str[offset+5] == '\n'){
+        r->state=2;
+        r->symbol='c';
+        r->move=LEFT;
+    // }else{
+    //  r->move = ERROR;
+    // }
 
-	return r;
+    return r;
 }
