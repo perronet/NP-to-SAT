@@ -10,9 +10,9 @@ case '_':
 t->move = ACCEPT;
 break;
 case 'a':
-t->state = 2;
-t->symbol = 'c';
-t->move = 0;
+t->state = 1;
+t->symbol = 'x';
+t->move = 1;
 break;
 default:
 t->move = ERROR;
@@ -21,10 +21,13 @@ break;
 break;
 case 1:
 switch(symbol){
+case '_':
+t->move = REJECT;
+break;
 case 'b':
 t->state = 2;
-t->symbol = 'c';
-t->move = 0;
+t->symbol = 'x';
+t->move = 1;
 break;
 default:
 t->move = ERROR;
@@ -33,13 +36,13 @@ break;
 break;
 case 2:
 switch(symbol){
-case 'd':
+case '_':
 t->move = REJECT;
 break;
 case 'c':
-t->state = 2;
-t->symbol = 'c';
-t->move = 0;
+t->state = 0;
+t->symbol = 'x';
+t->move = 1;
 break;
 default:
 t->move = ERROR;

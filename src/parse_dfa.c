@@ -4,14 +4,15 @@
 #define MAX_INT_DIGITS 10
 #define MAX_TRANSITION_LENGTH MAX_INT_DIGITS+5
 
-transition * divideString(char * str);
+void strToTransition(char * str, int offset, transition * t);
+
+bool isInteger(char * str);
 
 int main(int argc, char const *argv[]){
     FILE * input = fopen("input_program", "r");
     FILE * input_clean = fopen("input_clean", "w+");
     FILE * output = fopen("delta.c", "w");
-    transition * wellformed_transition;
-    int i;
+    int i, num_length;
     char c;
     bool errorOccurred;
 
@@ -21,6 +22,8 @@ int main(int argc, char const *argv[]){
     char * str_arrow = malloc(3*sizeof(char));                          //"->"
     char * str_transition = malloc(MAX_TRANSITION_LENGTH*sizeof(char)); //"integer,char,l or r\n"
     char * str_state_num = malloc((MAX_INT_DIGITS+1)*sizeof(char));     //integer corresponding to a state
+    char * ptr;
+    transition * wellformed_transition = malloc(sizeof(transition));
 
     fprintf(output, HEADER);
 
@@ -67,10 +70,9 @@ int main(int argc, char const *argv[]){
                 }
                 str_state_num[i] = '\0';
 
-                if(c != EOF && str_state_num[0] != '\0'){
+                if(c != EOF && isInteger(str_state_num)){
                     printf("State found %d\n", atoi(str_state_num));
                     fprintf(output, "case %d:\n", atoi(str_state_num));
-                    str_state_num[0] = '\0';
                 }else{
                     errorOccurred = true;
                 }
@@ -94,7 +96,20 @@ int main(int argc, char const *argv[]){
                             }else{
                                 //Must read exactly "integer,char,l or r\n" according to the syntax 
                                 fseek(input_clean, -6, SEEK_CUR);
-                                wellformed_transition = divideString(fgets(str_transition, 7, input_clean)); //TODO implement longer integers
+                                c = fgetc(input_clean);
+                                ptr = str_transition;
+                                num_length = 0;
+				                for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){
+				                    *ptr = c;
+				                    c = fgetc(input_clean);
+				                    num_length++;
+				                    ptr++;
+				                }
+				                fseek(input_clean, -1, SEEK_CUR);
+								fgets(ptr, 6, input_clean);
+
+				                //Check string syntax
+                                strToTransition(str_transition, num_length, wellformed_transition);
                                 if(wellformed_transition->move != ERROR){
                                     fprintf(output, "t->state = %d;\n", wellformed_transition->state);
                                     fprintf(output, "t->symbol = '%c';\n", wellformed_transition->symbol);
@@ -108,7 +123,7 @@ int main(int argc, char const *argv[]){
                         }
 
                         fprintf(output, "break;\n");
-                        c = fgetc(input_clean);
+                        c = fgetc(input_clean); //c will now be the input symbol or an empty line
                 }
                 fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nbreak;\n");
             }
@@ -118,6 +133,7 @@ int main(int argc, char const *argv[]){
 
     //Deallocate
     free(wellformed_transition);
+    free(str_state_num);
     free(str_transition);
     free(str_arrow);
     free(str_acc);
@@ -142,19 +158,40 @@ int main(int argc, char const *argv[]){
     }
 }
 
-transition * divideString(char * str){ //"integer,char,l or r\n" 
-    transition * r = malloc(sizeof(transition));
-    int offset;
+//"integer,char,l or r\n"
+void strToTransition(char * str, int offset, transition * t){ //offset is the first integer's length
+    char state_num[offset];
+    int i;
 
-    //TODO implement this function
+    if(str[offset] == ',' && isalpha(str[offset+1]) && str[offset+2] == ',' && 
+      (str[offset+3] == 'l' || str[offset+3] == 'r') && str[offset+4] == '\n'){
+    	for(i = 0; i < offset; ++i){
+    		state_num[i] = str[i];
+    	}
+    	state_num[i] = '\0';
 
-    // if(str[offset+1] == ',' && str[offset+3] == ',' && str[offset+5] == '\n'){
-        r->state=2;
-        r->symbol='c';
-        r->move=LEFT;
-    // }else{
-    //  r->move = ERROR;
-    // }
+    	if(isInteger(state_num)){ //string is well formed
+    		t->state = atoi(state_num);
+        	t->symbol = str[offset+1];
+        	if(str[offset+3] == 'r')
+        		t->move = RIGHT;
+        	else
+        		t->move = LEFT;
+    	}else{
+    		t->move = ERROR;
+    	}
+    }else{
+    	t->move = ERROR;
+    }
+}
 
-    return r;
+//useful because atoi returns 0 if the string is not an integer, but the integer could be 0
+bool isInteger(char * str){ 
+	int num;
+	 
+	num = atoi(str);
+	if (num == 0 && str[0] != '0')
+	   return false;
+	else
+	   return true;
 }

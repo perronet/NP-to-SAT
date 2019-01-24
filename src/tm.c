@@ -7,7 +7,7 @@
 #define FORMULAFILE boolean_formula
 
 int main(int argc, char const *argv[]){
-	transition * r = delta(0, 'a');
+	transition * r = malloc(sizeof(transition));
 	char_node * tape = malloc(sizeof(char_node));
 	char_node * head;
 
@@ -15,22 +15,25 @@ int main(int argc, char const *argv[]){
 	//calculate boolean formula
 	#endif
 
+	#ifdef SLOW
+	//use slow mode
+	#endif
+
 	tape->elem = 'a';
 	tape->prev = tape;
 	tape->next = NULL;
 	head = tape;
 
-	listadd(tape, 'b');
-	listadd(tape, 'c');
-	listadd(tape, 'd');
-	listadd(tape, 'e');
-	listprint(tape);
-	char * copy = listcpystring(tape);
-	printf("%s\n", copy);
-	listdeallocate(tape);
+	//Read input string (first remove whitespace)
 
-	printf("%d\n", r->state);
-	printf("%c\n", r->symbol);
-	printf("%d\n", r->move);
 	return 0;
 }
+
+	// listadd(tape, 'b');
+	// listadd(tape, 'c');
+	// listadd(tape, 'd');
+	// listadd(tape, 'e');
+	// listprint(tape);
+	// char * copy = listcpystring(tape);
+	// printf("%s\n", copy);
+	// listdeallocate(tape);
