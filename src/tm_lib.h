@@ -52,7 +52,7 @@ typedef struct tm_properties{ //Resources used to reduce the problem to a boolea
 	char_node * alphabet;
 	int_node * states;
 	char * input_string;
-	int tot_steps;
+	int tot_steps; //n^k
 } tm_properties;
 
 //Functions

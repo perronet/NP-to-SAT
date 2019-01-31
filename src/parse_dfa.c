@@ -28,35 +28,9 @@ int main(int argc, char const *argv[]){
     fprintf(output, HEADER);
 
     //Remove comments and whitespace
-    while((c = fgetc(input)) != EOF){
-        switch(c){
-            case '/':
-                c = fgetc(input);
-                if(c == '/'){
-                    while((c = fgetc(input)) != EOF && c != '\n'){}
-                }else{
-                    fprintf(input_clean, "/", c);
-                }
-                if(c != EOF)
-                    fseek(input, -1, SEEK_CUR);
-            break;
-
-            case ' ':
-                while(c == ' '){
-                    c = fgetc(input);
-                }
-                if(c != EOF)
-                    fseek(input, -1, SEEK_CUR);
-            break;
-
-            default:
-                fprintf(input_clean, "%c", c);
-            break;  
-        }
-    }
+    normalizeInput(input, input_clean);
 
     //Parse user input into c code
-    rewind(input_clean);
     errorOccurred = false;
     while((c = fgetc(input_clean)) != EOF && !errorOccurred){
         if(c != '\n'){
@@ -185,7 +159,39 @@ void strToTransition(char * str, int offset, transition * t){ //offset is the fi
     }
 }
 
+void normalizeInput(FILE * src, FILE * dest){
+    while((c = fgetc(src)) != EOF){
+        char c;
+        switch(c){
+            case '/':
+                c = fgetc(src);
+                if(c == '/'){
+                    while((c = fgetc(src)) != EOF && c != '\n'){}
+                }else{
+                    fprintf(dest, "/", c);
+                }
+                if(c != EOF)
+                    fseek(src, -1, SEEK_CUR);
+            break;
+
+            case ' ':
+                while(c == ' '){
+                    c = fgetc(src);
+                }
+                if(c != EOF)
+                    fseek(src, -1, SEEK_CUR);
+            break;
+
+            default:
+                fprintf(dest, "%c", c);
+            break;  
+        }
+    }
+    rewind(dest);
+}
+
 //useful because atoi returns 0 if the string is not an integer, but the integer could be 0
+
 bool isInteger(char * str){ 
 	int num;
 	 
