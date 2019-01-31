@@ -1,14 +1,29 @@
-//first state in the list is the initial state
-//stupid automata that recognizes (abc)*
+state 0://start
+a->1,x,r
+b->2,x,r 
+x->ACCEPT //empty string
 
-state 0:
-_ -> ACCEPT
-a -> 1, x, r
+state 1: //haveA
+a->1,a,r
+b->1,b,r
+x->3,x,l
 
-state 1:
-_ -> REJECT
-b -> 2, x, r
+state 2: //haveB
+a->2,a,r
+b->2,b,r
+x->4,x,l
 
-state 2:
-_ -> REJECT
-c -> 0, x, r
+state 3: //matchA
+a->5,x,l //same symbol at both ends
+b->REJECT
+x->ACCEPT //single symbol
+
+state 4: //matchB
+b->5,x,l //same symbol at both ends
+a->REJECT
+x->ACCEPT //single symbol
+
+state 5:
+a->5,a,l
+b->5,b,l 
+x->0,x,r   

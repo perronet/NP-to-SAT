@@ -6,13 +6,18 @@ transition * t = malloc(sizeof(transition));
 switch(state){
 case 0:
 switch(symbol){
-case '_':
-t->move = ACCEPT;
-break;
 case 'a':
 t->state = 1;
 t->symbol = 'x';
 t->move = 1;
+break;
+case 'b':
+t->state = 2;
+t->symbol = 'x';
+t->move = 1;
+break;
+case 'x':
+t->move = ACCEPT;
 break;
 default:
 t->move = ERROR;
@@ -21,13 +26,20 @@ break;
 break;
 case 1:
 switch(symbol){
-case '_':
-t->move = REJECT;
+case 'a':
+t->state = 1;
+t->symbol = 'a';
+t->move = 1;
 break;
 case 'b':
-t->state = 2;
-t->symbol = 'x';
+t->state = 1;
+t->symbol = 'b';
 t->move = 1;
+break;
+case 'x':
+t->state = 3;
+t->symbol = 'x';
+t->move = 0;
 break;
 default:
 t->move = ERROR;
@@ -36,10 +48,75 @@ break;
 break;
 case 2:
 switch(symbol){
-case '_':
+case 'a':
+t->state = 2;
+t->symbol = 'a';
+t->move = 1;
+break;
+case 'b':
+t->state = 2;
+t->symbol = 'b';
+t->move = 1;
+break;
+case 'x':
+t->state = 4;
+t->symbol = 'x';
+t->move = 0;
+break;
+default:
+t->move = ERROR;
+break;
+}
+break;
+case 3:
+switch(symbol){
+case 'a':
+t->state = 5;
+t->symbol = 'x';
+t->move = 0;
+break;
+case 'b':
 t->move = REJECT;
 break;
-case 'c':
+case 'x':
+t->move = ACCEPT;
+break;
+default:
+t->move = ERROR;
+break;
+}
+break;
+case 4:
+switch(symbol){
+case 'b':
+t->state = 5;
+t->symbol = 'x';
+t->move = 0;
+break;
+case 'a':
+t->move = REJECT;
+break;
+case 'x':
+t->move = ACCEPT;
+break;
+default:
+t->move = ERROR;
+break;
+}
+break;
+case 5:
+switch(symbol){
+case 'a':
+t->state = 5;
+t->symbol = 'a';
+t->move = 0;
+break;
+case 'b':
+t->state = 5;
+t->symbol = 'b';
+t->move = 0;
+break;
+case 'x':
 t->state = 0;
 t->symbol = 'x';
 t->move = 1;
