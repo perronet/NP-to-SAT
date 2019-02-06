@@ -71,3 +71,23 @@ void listdeallocate(char_node * l){
 	}
 	free(l);
 }
+
+char * enumToString(char * str, enum action a){
+	switch(a){
+		case 0:
+			strcpy(str, "LEFT");
+		break;
+		case 1:
+			strcpy(str, "RIGHT");
+		break;
+		case 2:
+			strcpy(str, "ACCEPT");
+		break;
+		case 3:
+			strcpy(str, "REJECT");
+		break;
+		case 4:
+			strcpy(str, "ERROR");
+		break;
+	}
+} 

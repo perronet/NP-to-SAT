@@ -37,11 +37,6 @@ enum action{
 	ERROR
 };
 
-typedef struct curr_status{
-	int state;
-	char symbol;
-} curr_status;
-
 typedef struct transition{
 	int state;
 	char symbol;
@@ -69,8 +64,7 @@ void listdeallocate(char_node * l);
 
 int listlength(char_node * l);
 
-// char_node * listnext(char_node * n);
-// char_node * listprev(char_node * n);
+char * enumToString(char * str, enum action a);
 
 // int * intListToArray(int_node * l);
 

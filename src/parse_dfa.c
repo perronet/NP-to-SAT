@@ -107,13 +107,16 @@ int main(int argc, char const *argv[]){
                             errorline = line;
                         }
 
+                        line++;
                         fprintf(output, "break;\n");
                         c = fgetc(input_clean); //c will now be the input symbol or an empty line
                 }
-                if(c != '\n'){
+                if(c == '\n')
                     line++;
-                }
                 fprintf(output, "default:\nt->move = ERROR;\nbreak;\n}\nbreak;\n");
+            }else{
+                errorOccurred = true;
+                errorline = line;
             }
         }else{
             line++;

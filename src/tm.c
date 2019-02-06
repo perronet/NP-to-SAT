@@ -19,7 +19,7 @@ char_node * blankNode(char_node * prev);
 
 bool contains(char * str, char c, int len);
 
-// void printTransition(transition * tr);
+void printTransition(int state, char symbol, transition * tr);
 
 int main(int argc, char const *argv[]){
 	FILE * input = fopen("input_string", "r");
@@ -66,8 +66,10 @@ int main(int argc, char const *argv[]){
 		    }
 		    printf("V\n");
 		    listprint(tape);
+		    printf("\n");
 
 			tr = delta(curr_state, curr_symbol);
+			printTransition(curr_state, curr_symbol, tr);
 			curr_state = tr->state;
 			head->elem = tr->symbol;
 
@@ -173,6 +175,12 @@ char_node * blankNode(char_node * prev){
 	r->next = NULL;
 
 	return r;
+}
+
+void printTransition(int state, char symbol, transition * tr){
+	char strmove[7];
+	enumToString(strmove, tr->move);
+	printf("Transition: %d, %c -> %d, %c, %s\n\n", state, symbol, tr->state, tr->symbol, strmove);
 }
 
 bool contains(char * str, char c, int len){
