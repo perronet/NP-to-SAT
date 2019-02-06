@@ -61,7 +61,9 @@ char_node * listadd(char_node * l, char e);
 
 void listprint(char_node * l);
 
-char * listcpystring(char_node * l);
+void listcpystring(char_node * l, char * str);
+
+char * listcpystring_new(char_node * l);
 
 void listdeallocate(char_node * l);
 

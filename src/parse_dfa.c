@@ -7,7 +7,7 @@
 
 void strToTransition(char * str, int offset, transition * t);
 
-void normalizeInput(FILE * dest, FILE * src);
+int normalizeInput(FILE * dest, FILE * src);
 
 bool isInteger(char * str);
 
@@ -16,9 +16,9 @@ int main(int argc, char const *argv[]){
     FILE * input_clean = fopen("input_clean", "w+");
     FILE * state_list = fopen("state_list", "w");
     FILE * output = fopen("delta.c", "w");
-    int i, num_length, errorline, line = 1; //TODO fix errorline
+    int i, num_length, errorline = 0, line = 1; //TODO fix errorline
     char c;
-    bool errorOccurred;
+    bool errorOccurred = false;
 
     //Buffers
     char * str_state = malloc(6*sizeof(char));                          //"state"
@@ -32,11 +32,10 @@ int main(int argc, char const *argv[]){
     fprintf(output, HEADER);
 
     //Remove comments and whitespace
-    normalizeInput(input_clean, input);
+    if(normalizeInput(input_clean, input) == -1)
+        errorOccurred = true;
 
     //Parse user input into c code
-    errorOccurred = false;
-
     while((c = fgetc(input_clean)) != EOF && !errorOccurred){
         if(c != '\n'){
             fseek(input_clean, -1, SEEK_CUR);
@@ -144,7 +143,10 @@ int main(int argc, char const *argv[]){
         printf("Could not execve");
         return EXIT_FAILURE;
     }else{
-        printf("Error at line %d: parse failed, check input syntax\n", errorline);
+        if(errorline != 0)
+            printf("Error at line %d: parse failed, check input syntax\n", errorline);
+        else
+            printf("Error: the '#' character is not allowed in input program!\n");
         system("rm delta.c");
         return EXIT_FAILURE;
     }
@@ -155,7 +157,7 @@ void strToTransition(char * str, int offset, transition * t){ //offset is the fi
     char state_num[offset];
     int i;
 
-    if(str[offset] == ',' && isalpha(str[offset+1]) && str[offset+2] == ',' && 
+    if(str[offset] == ',' && isascii(str[offset+1]) && str[offset+2] == ',' && 
       (str[offset+3] == 'l' || str[offset+3] == 'r') && str[offset+4] == '\n'){
     	for(i = 0; i < offset; ++i){
     		state_num[i] = str[i];
@@ -177,7 +179,7 @@ void strToTransition(char * str, int offset, transition * t){ //offset is the fi
     }
 }
 
-void normalizeInput(FILE * dest, FILE * src){
+int normalizeInput(FILE * dest, FILE * src){
 	char c;
     while((c = fgetc(src)) != EOF){
         switch(c){
@@ -195,6 +197,10 @@ void normalizeInput(FILE * dest, FILE * src){
             case ' ':
             break;
 
+            case '#':
+                return -1;
+            break;
+
             default:
                 fprintf(dest, "%c", c);
             break;  
@@ -202,6 +208,8 @@ void normalizeInput(FILE * dest, FILE * src){
     }
     fprintf(dest, "\n");
     rewind(dest);
+
+    return 0;
 }
 
 //useful because atoi returns 0 if the string is not an integer, but the integer could be 0

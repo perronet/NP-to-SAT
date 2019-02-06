@@ -8,15 +8,15 @@ case 0:
 switch(symbol){
 case 'a':
 t->state = 1;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 1;
 break;
 case 'b':
 t->state = 2;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 1;
 break;
-case 'x':
+case '_':
 t->move = ACCEPT;
 break;
 default:
@@ -36,9 +36,9 @@ t->state = 1;
 t->symbol = 'b';
 t->move = 1;
 break;
-case 'x':
+case '_':
 t->state = 3;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 0;
 break;
 default:
@@ -58,9 +58,9 @@ t->state = 2;
 t->symbol = 'b';
 t->move = 1;
 break;
-case 'x':
+case '_':
 t->state = 4;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 0;
 break;
 default:
@@ -72,13 +72,13 @@ case 3:
 switch(symbol){
 case 'a':
 t->state = 5;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 0;
 break;
 case 'b':
 t->move = REJECT;
 break;
-case 'x':
+case '_':
 t->move = ACCEPT;
 break;
 default:
@@ -90,13 +90,13 @@ case 4:
 switch(symbol){
 case 'b':
 t->state = 5;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 0;
 break;
 case 'a':
 t->move = REJECT;
 break;
-case 'x':
+case '_':
 t->move = ACCEPT;
 break;
 default:
@@ -116,9 +116,9 @@ t->state = 5;
 t->symbol = 'b';
 t->move = 0;
 break;
-case 'x':
+case '_':
 t->state = 0;
-t->symbol = 'x';
+t->symbol = '_';
 t->move = 1;
 break;
 default:

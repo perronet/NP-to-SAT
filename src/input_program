@@ -1,29 +1,29 @@
 state 0://start
-a->1,x,r
-b->2,x,r 
-x->ACCEPT //empty string
+a->1,_,r
+b->2,_,r 
+_->ACCEPT //empty string
 
 state 1: //haveA
 a->1,a,r
 b->1,b,r
-x->3,x,l
+_->3,_,l
 
 state 2: //haveB
 a->2,a,r
 b->2,b,r
-x->4,x,l
+_->4,_,l
 
 state 3: //matchA
-a->5,x,l //same symbol at both ends
+a->5,_,l //same symbol at both ends
 b->REJECT
-x->ACCEPT //single symbol
+_->ACCEPT //single symbol
 
 state 4: //matchB
-b->5,x,l //same symbol at both ends
+b->5,_,l //same symbol at both ends
 a->REJECT
-x->ACCEPT //single symbol
+_->ACCEPT //single symbol
 
 state 5:
 a->5,a,l
 b->5,b,l 
-x->0,x,r   
+_->0,_,r   

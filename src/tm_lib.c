@@ -18,12 +18,23 @@ void listprint(char_node * l){
 	printf("%c", l->elem);
 	while(l->next != NULL){
 		l = l->next;
-		printf(" %c", l->elem);
+		printf("%c", l->elem);
 	}
 	printf("\n");
 }
 
-char * listcpystring(char_node * l){
+void listcpystring(char_node * l, char * str){
+	while(l->next != NULL){
+		*str = l->elem;
+		str++;
+		l = l->next;
+	}
+	*str = l->elem;
+	str++;
+	*str = '\0';
+}
+
+char * listcpystring_new(char_node * l){
 	int n = listlength(l);
 	char * string = malloc((n+1)*sizeof(char));
 	char * r = string;

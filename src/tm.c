@@ -7,13 +7,15 @@
 #define FORMULAFILE boolean_formula
 #define clearConsole() printf("\e[1;1H\e[2J")
 #define SLOW
-#define SLEEP_TIME 300*1000
+#define SLEEP_TIME 50*1000
 
 int normalizeInput(FILE * dest, FILE * src);
 
 int countChars(FILE * f);
 
 void getSymbols(char * dest, char * src, int len);
+
+char_node * blankNode(char_node * prev);
 
 bool contains(char * str, char c, int len);
 
@@ -27,10 +29,9 @@ int main(int argc, char const *argv[]){
 	transition * tr = malloc(sizeof(transition));
 	char_node * tape = malloc(sizeof(char_node));
 	char_node * head;
-	char curr_symbol;
+	char curr_symbol, c;
 	int i, len, curr_state, curr_steps = 0, head_offset = 0;
 
-	tape->elem = 'a';
 	tape->prev = tape;
 	tape->next = NULL;
 	head = tape;
@@ -39,18 +40,21 @@ int main(int argc, char const *argv[]){
 	rewind(state_list);
 
 	if(normalizeInput(input_clean, input) != -1){ //remove whitespace and newlines
-		len = countChars(input_clean);
-		char inputstr[len]; 
-		for (i = 0; i < len; ++i){
-			inputstr[i] = fgetc(input_clean); 
-		}
-		inputstr[i] = '\0'; 
-		curr_symbol = inputstr[0];
+		c = fgetc(input_clean);
+		head->elem = c;
+		curr_symbol = c;
+
+		while((c = fgetc(input_clean)) != EOF)
+			listadd(tape, c);
+		rewind(input_clean);
 
 		#ifdef FORMULA
-	    char alphabet[len];
+		int len = countChars(input_clean);
+		char inputstr[len+1], alphabet[len+1];
+		listcpystring(tape, inputstr);
 	    getSymbols(alphabet, inputstr, len); 
 	    printf("Alphabet %s\n", alphabet);
+	    sleep(2);
 		#endif
 
 	    while(tr->move != ACCEPT && tr->move != REJECT && tr->move != ERROR){
@@ -61,21 +65,25 @@ int main(int argc, char const *argv[]){
 		    	printf(" ");
 		    }
 		    printf("V\n");
-			printf("%s\n\n", inputstr);
+		    listprint(tape);
 
 			tr = delta(curr_state, curr_symbol);
 			curr_state = tr->state;
-			inputstr[head_offset] = tr->symbol;
+			head->elem = tr->symbol;
 
 			if(tr->move == LEFT){
 				if(head_offset > 0)
 					head_offset--;
-			}else if(tr->move == RIGHT){ //could get off the array
+				head = head->prev;
+			}else if(tr->move == RIGHT){
+				if(head->next == NULL)
+					head->next = blankNode(head);
 				head_offset++;
+				head = head->next;
 			}
 
 			if(tr->move != ERROR)
-				curr_symbol = inputstr[head_offset];
+				curr_symbol = head->elem;
 
 			curr_steps++;
 			#ifdef SLOW
@@ -93,16 +101,16 @@ int main(int argc, char const *argv[]){
 	    	break;
 
 	    	case ERROR:
-	    	printf("Input rejected, symbol '%c' is not recognized\n", curr_symbol);
+	    	printf("Input rejected, symbol '%c' is not recognized.\n", curr_symbol);
 	    	break;
 
 	    	default:
-	    	printf("Fatal error\n"); //should never get here
+	    	printf("Fatal error.\n"); //should never get here
 	    	break;
 	    }
-
+	    
 	}else{
-		printf("Error: '_' and '#' characters are not allowed!\n");
+		printf("Error: '_' and '#' characters are not allowed in input string!\n");
 	}
 
 
@@ -110,14 +118,20 @@ int main(int argc, char const *argv[]){
 	//calculate boolean formula
 	#endif
 
+	free(tr);
+	listdeallocate(tape);
+	fclose(input);
+	fclose(input_clean);
+	fclose(state_list);
+
+
 	return 0;
 }
 
-int normalizeInput(FILE * dest, FILE * src){
+int normalizeInput(FILE * dest, FILE * src){ //TODO what if input empty
 	char c;
 	while((c = fgetc(src)) != EOF){
-
-		if(c == '#'){ //REMINDER: re add _ after testing
+		if(c == '#' || c == '_'){
 			return -1;
 		}else if(c != ' ' && c != '\n'){
 			fprintf(dest, "%c", c);
@@ -152,6 +166,15 @@ void getSymbols(char * dest, char * src, int len){
 	dest[k] = '\0';
 }
 
+char_node * blankNode(char_node * prev){
+	char_node * r = malloc(sizeof(char_node));
+	r->elem = '_';
+	r->prev = prev;
+	r->next = NULL;
+
+	return r;
+}
+
 bool contains(char * str, char c, int len){
 	for(int i = 0; i < len; ++i){
 		if(str[i] == c)
@@ -160,12 +183,3 @@ bool contains(char * str, char c, int len){
 
 	return false;
 }
-
-	// listadd(tape, 'b');
-	// listadd(tape, 'c');
-	// listadd(tape, 'd');
-	// listadd(tape, 'e');
-	// listprint(tape);
-	// char * copy = listcpystring(tape);
-	// printf("%s\n", copy);
-	// listdeallocate(tape);
