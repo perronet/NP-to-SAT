@@ -91,3 +91,48 @@ char * enumToString(char * str, enum action a){
 		break;
 	}
 } 
+
+void printProperties(tm_properties * prop){
+	printf("Turing machine data:\n");
+	printf("Alphabet: %s\n", prop->alphabet);
+	printf("Input string: %s\n", prop->input_string);
+	printf("States: ");
+	printarray(prop->states, prop->states_length);
+	printf("Alphabet length: %d\n", prop->alphabet_length);
+	printf("States length: %d\n", prop->states_length);
+	printf("Total steps: %d\n", prop->tot_steps);
+}
+
+void printarray(int * a, int len){
+	for(int i = 0; i < len; ++i){
+		printf("%d ", a[i]);
+	}
+	printf("\n");
+}
+
+int countChars(FILE * f){
+	char c;
+	int r = 0;
+	c = fgetc(f);
+	while(c != EOF){
+		c = fgetc(f);
+		r++;
+	}
+	rewind(f);
+
+	return r;
+}
+
+int countLines(FILE * f){
+	char c;
+	int r = 1;
+	c = fgetc(f);
+	while(c != EOF){
+		if(c == '\n')
+			r++;
+		c = fgetc(f);
+	}
+	rewind(f);
+
+	return r;	
+}

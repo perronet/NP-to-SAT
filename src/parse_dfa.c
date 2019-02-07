@@ -16,7 +16,7 @@ int main(int argc, char const *argv[]){
     FILE * input_clean = fopen("input_clean", "w+");
     FILE * state_list = fopen("state_list", "w");
     FILE * output = fopen("delta.c", "w");
-    int i, num_length, errorline = 0, line = 1; //TODO fix errorline
+    int i, num_length, errorline = 0, line = 1;
     char c;
     bool errorOccurred = false;
 
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[]){
 
                 if(c != EOF && isInteger(str_state_num)){
                     printf("State found %d\n", atoi(str_state_num));
-                    fprintf(state_list, "%d\n", atoi(str_state_num));
+                    fprintf(state_list, "%d", atoi(str_state_num)); //TODO put \n again after testing
                     fflush(state_list);
                     fprintf(output, "case %d:\n", atoi(str_state_num));
                 }else{

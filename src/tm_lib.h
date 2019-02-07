@@ -32,9 +32,9 @@ typedef struct int_node{
 enum action{
 	LEFT,
 	RIGHT,
-	ACCEPT,
-	REJECT,
-	ERROR
+	ACCEPT, //encoded as -2 in the formula
+	REJECT, //encoded as -1 in the formula
+	ERROR   //encoded as -1 in the formula
 };
 
 typedef struct transition{
@@ -43,11 +43,14 @@ typedef struct transition{
 	enum action move;
 } transition;
 
-typedef struct tm_properties{ //Resources used to reduce the problem to a boolean formula
-	char_node * alphabet;
-	int_node * states;
+//Resources used to reduce the problem to a boolean formula
+typedef struct tm_properties{ 
+	char * alphabet;
+	int * states;
 	char * input_string;
-	int tot_steps; //n^k
+	int alphabet_length;
+	int states_length;
+	int tot_steps; //used to put an upper bound to the computation steps
 } tm_properties;
 
 //Functions
@@ -65,6 +68,13 @@ void listdeallocate(char_node * l);
 int listlength(char_node * l);
 
 char * enumToString(char * str, enum action a);
+
+void printProperties(tm_properties * prop);
+
+void printarray(int * a, int len);
+
+int countChars(FILE * f);
+int countLines(FILE * f);
 
 // int * intListToArray(int_node * l);
 
