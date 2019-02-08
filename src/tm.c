@@ -4,13 +4,21 @@
 #include "tm_lib.h"
 
 #define FORMULAFILE "formula"
-#define clearConsole() printf("\e[1;1H\e[2J")
 // #define SLOW
 // #define SLEEP_TIME 5*1000
+
+#define clearConsole() printf("\e[1;1H\e[2J")
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
+#define isState(X) ((X) >= (prop->alphabet_length))
+#define encodeStateId(X) (-(X+1))
+#define decodeStateId(X) (abs(X)-1)
 
 #define writeClause(I, J, X) sym=X;fprintf(formula, "%d 0\n", literalId(I, J, &sym, false, prop));clauses++
 #define writeClauseState(I, J, X) sym_state=X;fprintf(formula, "%d 0\n", literalId(I, J, &sym_state, true, prop));clauses++
+
+#define writeLiteralId(I, J, X) fprintf(formula, "%d ", literalIdGiven(I, J, X, prop))
+#define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%d ", literalIdGiven(I, J, X, prop))
 
 #define writeLiteral(I, J, X) sym=X;fprintf(formula, "%d ", literalId(I, J, &sym, false, prop))
 #define writeLiteralState(I, J, X) sym_state=X;fprintf(formula, "%d ", literalId(I, J, &sym_state, true, prop))
@@ -31,9 +39,13 @@ void printTransition(int state, char symbol, transition * tr);
 //Given cell coordinates and cell symbol returns unique id for that boolean varaible
 //Cell symbols = {alphabet}U{states}
 int literalId(int i, int j, void * s, bool isState, tm_properties * prop); //s can be a symbol or state
+int literalIdGiven(int i, int j, int s_id, tm_properties * prop);          //symbol id is given
 int stateId(int s, tm_properties * prop);
 int symbolId(char c, tm_properties * prop);
 int maxLiteralId(tm_properties * prop);
+
+void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
+void calculateDispositions(disposition_node * l, tm_properties * prop);
 
 int main(int argc, char const *argv[]){
 	FILE * input = fopen("input_string", "r");
@@ -124,19 +136,19 @@ int main(int argc, char const *argv[]){
 
 	    switch(tr->move){
 	    	case ACCEPT:
-	    	printf("Input accepted.\n");
+	    	printf("Input accepted.\n\n");
 	    	break;
 
 	    	case REJECT:
-	    	printf("Input rejected.\n");
+	    	printf("Input rejected.\n\n");
 	    	break;
 
 	    	case ERROR:
-	    	printf("Input rejected, symbol '%c' is not recognized.\n", curr_symbol);
+	    	printf("Input rejected, symbol '%c' is not recognized.\n\n", curr_symbol);
 	    	break;
 
 	    	default:
-	    	printf("Fatal error.\n"); //should never get here
+	    	printf("Fatal error.\n\n"); //should never get here
 	    	break;
 	    }
 	    
@@ -145,7 +157,7 @@ int main(int argc, char const *argv[]){
 	}
 
 	free(tr);
-	listdeallocate(tape);
+	listdeallocatechar(tape);
 	fclose(input);
 	fclose(input_clean);
 	fclose(state_list);
@@ -154,15 +166,18 @@ int main(int argc, char const *argv[]){
 	FILE * formula = fopen(FORMULAFILE, "w");
 	prop->tot_steps = curr_steps;
 	printProperties(prop);
+	printf("Calculating formula ...\n");
 
 	//Calculate the 4 parts of the formula
-	int clauses = 0, input_length = strlen(prop->input_string); 
-	int sym_state, accept_state = prop->states[prop->states_length-1];
-	char sym;
+	int k, h, clauses = 0, input_length = strlen(prop->input_string); 
+	int accept_state = prop->states[prop->states_length-1];
+	int cell_sym_len = prop->alphabet_length + prop->states_length; //total number of possible symbols in a cell
+	int sym_state;  //used to write a cell symbol correspoding to a state
+	char sym;		//used to write a cell symbol correspoding to an alphabet symbol
 
 	//Phi-start
 	fprintf(formula, "p cnf %d %d\n", maxLiteralId(prop), prop->tot_steps+4); //syntax: p cnf n_variables n_clauses
-	fprintf(formula, "c Phi-start\n");										  //TODO write here clause number
+	fprintf(formula, "c ##### Phi-start #####\n");				              //TODO write here clause number
 	writeClause(1, 1, '#');
 	writeClauseState(1, 2, prop->states[0]);
 	fflush(formula);
@@ -176,7 +191,7 @@ int main(int argc, char const *argv[]){
 	fflush(formula);
 
 	//Phi-accept
-	fprintf(formula, "c Phi-accept\n");
+	fprintf(formula, "c ##### Phi-accept #####\n");
 	for(i = 1; i <= prop->tot_steps; ++i){
 		for(j = 1; j <= prop->tot_steps+3; ++j){
 			writeLiteralState(i, j, accept_state);
@@ -185,14 +200,36 @@ int main(int argc, char const *argv[]){
 	endClause();
 
 	//Phi-cell
+	fprintf(formula, "c ##### Phi-cell #####\n");
+	for(i = 1; i <= prop->tot_steps; ++i){
+		for(j = 1; j <= prop->tot_steps+3; ++j){
+			fprintf(formula, "c ## Cell [%d,%d] ##\n", i, j);
+
+			for(k = 0; k < cell_sym_len; ++k)
+				writeLiteralId(i, j, k);
+			endClause();
+
+
+			for(k = 0; k < cell_sym_len; ++k){
+				for(h = 0; h < cell_sym_len; ++h){
+					if(h != k){
+						writeLiteralIdNegated(i, j, k);
+						writeLiteralIdNegated(i, j, h);
+						endClause();
+					}
+				}
+			}
+
+		}
+	}	
 
 	//Phi-move
+	fprintf(formula, "c ##### Phi-move #####\n");
+	window_node * legal_windows = malloc(sizeof(window_node));
+	calculateLegalWindows(legal_windows, prop);
+	// printWindows(legal_windows);
 
-	// char test = 'b';
-	// int test2 = 0;
-	// for(int j=1; j <= prop->tot_steps+3; ++j){
-	// 	printf("j:%d %d\n", j, literalId(1, j, &test, false, prop));
-	// }
+
 	#endif
 
 	return 0;
@@ -265,6 +302,13 @@ int literalId(int i, int j, void * s, bool isState, tm_properties * prop){
 	return (i-1)*(prop->tot_steps+3)+(j*cell_sym_len)+offset;
 }
 
+int literalIdGiven(int i, int j, int s_id, tm_properties * prop){
+	int cell_sym_len = prop->alphabet_length + prop->states_length;
+	int offset = -cell_sym_len+s_id+1;
+
+	return (i-1)*(prop->tot_steps+3)+(j*cell_sym_len)+offset;
+}
+
 int stateId(int s, tm_properties * prop){
 	for(int i = 0; i < prop->states_length; ++i){
 		if (prop->states[i] == s)
@@ -286,4 +330,57 @@ int symbolId(char c, tm_properties * prop){
 int maxLiteralId(tm_properties * prop){ //the highest literal id in the bottom right corner, it will always be the accept state
 	int sym_state = prop->states[prop->states_length-1];
 	return literalId(prop->tot_steps, prop->tot_steps+3, &sym_state, true, prop);
+}
+
+//In windows state ids are encoded as negative numbers. Original id of x is abs(x)-1
+void calculateLegalWindows(window_node * legal_windows, tm_properties * prop){
+	window_node * win_ptr = legal_windows;
+	int cell_sym_len = prop->alphabet_length + prop->states_length;
+	disposition_node * disps = malloc(sizeof(disposition_node)); 
+	disposition_node * disps_ptr = disps;
+
+	//Dispositions are actually integers treated as chars, where negative integers are states
+	calculateDispositions(disps, prop);
+
+	//Trivial windows have the same symbols in top and bottom row, without state symbols
+	while(disps_ptr->next != NULL){
+		win_ptr->window[0] = disps_ptr->disposition[0];
+		win_ptr->window[1] = disps_ptr->disposition[1];
+		win_ptr->window[2] = disps_ptr->disposition[2];
+		win_ptr->window[3] = disps_ptr->disposition[0];
+		win_ptr->window[4] = disps_ptr->disposition[1];
+		win_ptr->window[5] = disps_ptr->disposition[2];
+
+		win_ptr = addWindow(win_ptr);
+		disps_ptr = disps_ptr->next;
+	}
+	
+	listdeallocatedisp(disps);
+}
+
+//This will return an array of all possible dispositions in the upper row, excluding illegal dispositions
+void calculateDispositions(disposition_node * l, tm_properties * prop){ //TODO could be optimized
+    int cell_sym_len = prop->alphabet_length + prop->states_length;
+    bool stateFound = false;
+
+	for(int i = 0; i < cell_sym_len; ++i){
+		for(int j = 0; j < cell_sym_len; ++j){
+			for(int k = 0; k < cell_sym_len; ++k){
+
+				//first part excludes #a# a#a ##a a##
+				//second part excludes duplicate state occurrences
+				if(((i != 0 || k != 0) && (j != 0)) 
+					&&
+				  ((isState(i) && !isState(j) && !isState(k)) || (!isState(i) && isState(j) && !isState(k)) || 
+				   (!isState(i) && !isState(j) && isState(k)) || (!isState(i) && !isState(j) && !isState(k))))
+				{
+					l->disposition[0] = (isState(i) ? encodeStateId(i) : prop->alphabet[i]); 
+					l->disposition[1] = (isState(j) ? encodeStateId(j) : prop->alphabet[j]);
+					l->disposition[2] = (isState(k) ? encodeStateId(k) : prop->alphabet[k]);
+					l = addDisposition(l);
+				}
+
+			}	
+		}
+	}
 }

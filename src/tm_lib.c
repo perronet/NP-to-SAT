@@ -1,5 +1,7 @@
 #include "tm_lib.h"
 
+//Char list functions
+
 char_node * listadd(char_node * l, char e){
 	char_node * new = malloc(sizeof(char_node));
 	new->elem = e;
@@ -64,7 +66,7 @@ int listlength(char_node * l){
 	return r;
 }
 
-void listdeallocate(char_node * l){
+void listdeallocatechar(char_node * l){
 	while(l->next != NULL){
 		l = l->next;
 		free(l->prev);
@@ -72,25 +74,70 @@ void listdeallocate(char_node * l){
 	free(l);
 }
 
-char * enumToString(char * str, enum action a){
-	switch(a){
-		case 0:
-			strcpy(str, "LEFT");
-		break;
-		case 1:
-			strcpy(str, "RIGHT");
-		break;
-		case 2:
-			strcpy(str, "ACCEPT");
-		break;
-		case 3:
-			strcpy(str, "REJECT");
-		break;
-		case 4:
-			strcpy(str, "ERROR");
-		break;
+void listdeallocatedisp(disposition_node * l){ 
+	if(l->next != NULL){
+		listdeallocatedisp(l->next);
+		free(l);
+	}else{
+		free(l);
 	}
-} 
+}
+
+void listdeallocatewin(window_node * l){ 
+	if(l->next != NULL){
+		listdeallocatewin(l->next);
+		free(l);
+	}else{
+		free(l);
+	}
+}
+
+//Window/Disposition list functions
+
+window_node * addWindow(window_node * last){ //window array will be filled manually
+	window_node * new = malloc(sizeof(window_node));
+	last->next = new;
+	new->next = NULL;
+
+	return new; //this will be the new last
+}
+
+void printWindows(window_node * l){
+	int i = 1;
+	printf("Window #0\n");
+	printarray(l->window, 6);
+	while(l->next != NULL){
+		l = l->next;
+		printf("Window #%d\n", i);
+		printarray(l->window, 3);
+		printarray(l->window+3, 3);
+		i++;
+	}
+	printf("\n");
+}
+
+disposition_node * addDisposition(disposition_node * last){
+	disposition_node * new = malloc(sizeof(disposition_node));
+	last->next = new;
+	new->next = NULL;
+
+	return new;
+}
+
+void printDispositions(disposition_node * l){
+	int i = 1;
+	printf("Disposition #0\n");
+	printarray(l->disposition, 3);
+	while(l->next != NULL){
+		l = l->next;
+		printf("Disposition #%d\n", i);
+		printarray(l->disposition, 3);
+		i++;
+	}
+	printf("\n");
+}
+
+//Utils
 
 void printProperties(tm_properties * prop){
 	printf("Turing machine data:\n");
@@ -100,7 +147,7 @@ void printProperties(tm_properties * prop){
 	printarray(prop->states, prop->states_length);
 	printf("Alphabet length: %d\n", prop->alphabet_length);
 	printf("States length: %d\n", prop->states_length);
-	printf("Total steps: %d\n", prop->tot_steps);
+	printf("Total steps: %d\n\n", prop->tot_steps);
 }
 
 void printarray(int * a, int len){
@@ -136,3 +183,23 @@ int countLines(FILE * f){
 
 	return r;	
 }
+
+char * enumToString(char * str, enum action a){
+	switch(a){
+		case 0:
+			strcpy(str, "LEFT");
+		break;
+		case 1:
+			strcpy(str, "RIGHT");
+		break;
+		case 2:
+			strcpy(str, "ACCEPT");
+		break;
+		case 3:
+			strcpy(str, "REJECT");
+		break;
+		case 4:
+			strcpy(str, "ERROR");
+		break;
+	}
+} 

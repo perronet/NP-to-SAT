@@ -24,10 +24,15 @@ typedef struct char_node{ //Used mostly for the machine's tape
 	struct char_node * next;
 } char_node;
 
-typedef struct int_node{
-	int elem;
-	struct int_node * next;
-} int_node;
+typedef struct disposition_node{
+	int disposition[3];
+	struct disposition_node * next;
+} disposition_node;
+
+typedef struct window_node{
+	int window[6];
+	struct window_node * next;
+}window_node;
 
 enum action{
 	LEFT,
@@ -63,8 +68,6 @@ void listcpystring(char_node * l, char * str);
 
 char * listcpystring_new(char_node * l);
 
-void listdeallocate(char_node * l);
-
 int listlength(char_node * l);
 
 char * enumToString(char * str, enum action a);
@@ -75,6 +78,15 @@ void printarray(int * a, int len);
 
 int countChars(FILE * f);
 int countLines(FILE * f);
+
+void listdeallocatechar(char_node * l);
+void listdeallocatedisp(disposition_node * l);
+void listdeallocatewin(window_node * l);
+
+window_node * addWindow(window_node * last);
+void printWindows(window_node * l);
+disposition_node * addDisposition(disposition_node * last);
+void printDispositions(disposition_node * l);
 
 // int * intListToArray(int_node * l);
 
