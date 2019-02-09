@@ -74,9 +74,9 @@ void listdeallocatechar(char_node * l){
 	free(l);
 }
 
-void listdeallocatedisp(disposition_node * l){ 
+void listdeallocateperm(permutation_node * l){ 
 	if(l->next != NULL){
-		listdeallocatedisp(l->next);
+		listdeallocateperm(l->next);
 		free(l);
 	}else{
 		free(l);
@@ -92,7 +92,7 @@ void listdeallocatewin(window_node * l){
 	}
 }
 
-//Window/Disposition list functions
+//Window/permutation list functions
 
 window_node * addWindow(window_node * last){ //window array will be filled manually
 	window_node * new = malloc(sizeof(window_node));
@@ -105,39 +105,38 @@ window_node * addWindow(window_node * last){ //window array will be filled manua
 void printWindows(window_node * l){
 	int i = 1;
 	printf("Window #0\n");
-	printarray(l->window, 6);
+	printSingleWindow(l->window);
 	while(l->next != NULL){
 		l = l->next;
 		printf("Window #%d\n", i);
-		printarray(l->window, 3);
-		printarray(l->window+3, 3);
+		printSingleWindow(l->window);
 		i++;
 	}
 	printf("\n");
 }
 
-disposition_node * addDisposition(disposition_node * last){
-	disposition_node * new = malloc(sizeof(disposition_node));
+permutation_node * addPermutation(permutation_node * last){
+	permutation_node * new = malloc(sizeof(permutation_node));
 	last->next = new;
 	new->next = NULL;
 
 	return new;
 }
 
-void printDispositions(disposition_node * l){
+//Utils
+
+void printPermutations(permutation_node * l){
 	int i = 1;
-	printf("Disposition #0\n");
-	printarray(l->disposition, 3);
+	printf("Permutation #0\n");
+	printSinglePermutation(l->permutation);
 	while(l->next != NULL){
 		l = l->next;
-		printf("Disposition #%d\n", i);
-		printarray(l->disposition, 3);
+		printf("Permutation #%d\n", i);
+		printSinglePermutation(l->permutation);
 		i++;
 	}
 	printf("\n");
 }
-
-//Utils
 
 void printProperties(tm_properties * prop){
 	printf("Turing machine data:\n");
@@ -153,6 +152,29 @@ void printProperties(tm_properties * prop){
 void printarray(int * a, int len){
 	for(int i = 0; i < len; ++i){
 		printf("%d ", a[i]);
+	}
+	printf("\n");
+}
+
+void printSingleWindow(int * w){
+	for(int i = 0; i < 6; ++i){
+		if(w[i] < 0)
+			printf("%d ", decodeStateId(w[i])); //it's a state
+		else
+			printf("%c ", w[i]); //it's a symbol
+
+		if(i == 2)
+			printf("\n");
+	}
+	printf("\n");
+}
+
+void printSinglePermutation(int * p){
+	for(int i = 0; i < 3; ++i){
+		if(p[i] < 0)
+			printf("%d ", decodeStateId(p[i])); //it's a state
+		else
+			printf("%c ", p[i]); //it's a symbol
 	}
 	printf("\n");
 }

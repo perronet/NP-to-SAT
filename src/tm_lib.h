@@ -13,6 +13,7 @@
 #define true 1
 #define false 0
 #define forever for(;;)
+#define decodeStateId(X) (abs(X))
 
 //Structures
 
@@ -24,10 +25,10 @@ typedef struct char_node{ //Used mostly for the machine's tape
 	struct char_node * next;
 } char_node;
 
-typedef struct disposition_node{
-	int disposition[3];
-	struct disposition_node * next;
-} disposition_node;
+typedef struct permutation_node{
+	int permutation[3];
+	struct permutation_node * next;
+} permutation_node;
 
 typedef struct window_node{
 	int window[6];
@@ -76,17 +77,21 @@ void printProperties(tm_properties * prop);
 
 void printarray(int * a, int len);
 
+void printSingleWindow(int * w);
+
+void printSinglePermutation(int * p);
+
 int countChars(FILE * f);
 int countLines(FILE * f);
 
 void listdeallocatechar(char_node * l);
-void listdeallocatedisp(disposition_node * l);
+void listdeallocateperm(permutation_node * l);
 void listdeallocatewin(window_node * l);
 
 window_node * addWindow(window_node * last);
 void printWindows(window_node * l);
-disposition_node * addDisposition(disposition_node * last);
-void printDispositions(disposition_node * l);
+permutation_node * addPermutation(permutation_node * last);
+void printPermutations(permutation_node * l);
 
 // int * intListToArray(int_node * l);
 
