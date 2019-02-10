@@ -13,13 +13,13 @@
 #define true 1
 #define false 0
 #define forever for(;;)
-#define decodeStateId(X) (abs(X))
+#define decodeStateId(X) (abs(X)-1)
 
 //Structures
 
 typedef char bool;
 
-typedef struct char_node{ //Used mostly for the machine's tape
+typedef struct char_node{ //Used for the machine's tape
 	char elem;
 	struct char_node * prev;
 	struct char_node * next;
@@ -38,9 +38,9 @@ typedef struct window_node{
 enum action{
 	LEFT,
 	RIGHT,
-	ACCEPT, //encoded as -2 in the formula
-	REJECT, //encoded as -1 in the formula
-	ERROR   //encoded as -1 in the formula
+	ACCEPT, //represented as -2 in the states array
+	REJECT, //represented as -1 in the states array
+	ERROR 
 };
 
 typedef struct transition{
