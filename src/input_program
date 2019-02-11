@@ -1,29 +1,10 @@
-state 0://start
-a->1,_,r
-b->2,_,r 
-_->ACCEPT //empty string
+//first state in the list is the initial state
+//stupid automata that recognizes (ab)*
 
-state 1: //haveA
-a->1,a,r
-b->1,b,r
-_->3,_,l
+state 0:
+_ -> ACCEPT
+a -> 1, _, r
 
-state 2: //haveB
-a->2,a,r
-b->2,b,r
-_->4,_,l
-
-state 3: //matchA
-a->5,_,l //same symbol at both ends
-b->REJECT
-_->ACCEPT //single symbol
-
-state 4: //matchB
-b->5,_,l //same symbol at both ends
-a->REJECT
-_->ACCEPT //single symbol
-
-state 5:
-a->5,a,l
-b->5,b,l 
-_->0,_,r   
+state 1:
+_ -> REJECT
+b -> 0, _, r

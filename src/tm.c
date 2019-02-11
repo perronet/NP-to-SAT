@@ -46,8 +46,9 @@ int stateId(int s, tm_properties * prop);
 int symbolId(char c, tm_properties * prop);
 int maxLiteralId(tm_properties * prop);
 
-void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
 void calculatePermutations(permutation_node * l, tm_properties * prop);
+void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
+void writeWindowsCnf(FILE * f, window_node * w);
 
 int main(int argc, char const *argv[]){
 	FILE * input = fopen("input_string", "r");
@@ -167,6 +168,7 @@ int main(int argc, char const *argv[]){
 #ifdef FORMULA
 
 	FILE * formula = fopen(FORMULAFILE, "w");
+	FILE * windows_cnf = fopen("windows_cnf", "w+");
 	prop->tot_steps = curr_steps;
 	printProperties(prop);
 	printf("Calculating formula ...\n");
@@ -238,11 +240,28 @@ int main(int argc, char const *argv[]){
 	window_node * legal_windows = malloc(sizeof(window_node));
 	calculateLegalWindows(legal_windows, prop);
 	printWindows(legal_windows);
-	printProperties(prop);
+	// printProperties(prop);
+
+	//Write and convert legal windows in conjunctive normal form
+	writeWindowsCnf(windows_cnf, legal_windows);
+
+	// while(legal_windows->next != NULL){
+	// write all of windows_cnf into formula
+	// }
+
+
+	fflush(windows_cnf);
+	fflush(formula);
+	fclose(windows_cnf);
+	fclose(formula);
 
 #endif//FORMULA
 
 	return 0;
+}
+
+void writeWindowsCnf(FILE * f, window_node * w){
+
 }
 
 int normalizeInput(FILE * dest, FILE * src){ //TODO what if input empty
