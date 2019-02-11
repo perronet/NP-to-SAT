@@ -73,6 +73,8 @@ int listlength(char_node * l);
 
 char * enumToString(char * str, enum action a);
 
+int powint(int x, int y);
+
 void printProperties(tm_properties * prop);
 
 void printarray(int * a, int len);

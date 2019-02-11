@@ -15,6 +15,7 @@
 #define encodeStateId(X) (-(X+1))
 #define decodeStateId(X) (abs(X)-1)
 #define isAccOrRejState(X) (isStateWindow(X) && decodeStateId(X) >= cell_sym_len-2)
+#define evaluateWindowDnfClause() (clause[0] && clause[1] && clause[2] && clause[3] && clause[4] && clause[5])
 
 #define writeTopRow() win_ptr->window[0]=perm_ptr->permutation[0];win_ptr->window[1]=perm_ptr->permutation[1];win_ptr->window[2]=perm_ptr->permutation[2]
 #define writeBottomRow(A, B, C) win_ptr->window[3]=A;win_ptr->window[4]=B;win_ptr->window[5]=C
@@ -40,7 +41,7 @@ void printTransition(int state, char symbol, transition * tr);
 
 //Given cell coordinates and cell symbol returns unique id for that boolean varaible
 //Cell symbols = {alphabet}U{states}
-int literalId(int i, int j, void * s, bool isState, tm_properties * prop); //s can be a symbol or state
+int literalId(int i, int j, void * s, bool state, tm_properties * prop); //s can be a symbol or state
 int literalIdGiven(int i, int j, int s_id, tm_properties * prop);          //symbol id is given
 int stateId(int s, tm_properties * prop);
 int symbolId(char c, tm_properties * prop);
@@ -48,7 +49,9 @@ int maxLiteralId(tm_properties * prop);
 
 void calculatePermutations(permutation_node * l, tm_properties * prop);
 void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
-void writeWindowsCnf(FILE * f, window_node * w);
+void writeWindowsCnf(FILE * f, window_node * w, tm_properties * prop);
+void toBinaryString(char * dest, int n, int len);
+bool evaluateWindowDnfExpression(char * str, window_node * w, tm_properties * prop);
 
 int main(int argc, char const *argv[]){
 	FILE * input = fopen("input_string", "r");
@@ -174,7 +177,7 @@ int main(int argc, char const *argv[]){
 	printf("Calculating formula ...\n");
 
 	//Calculate the 4 parts of the formula
-	int k, h, clauses = 0, literals = 0, input_length = strlen(prop->input_string); 
+	int k, h, lines, clauses = 0, literals = 0, input_length = strlen(prop->input_string); 
 	int accept_state = prop->states[prop->states_length-1];
 	int cell_sym_len = prop->alphabet_length + prop->states_length; //total number of possible symbols in a cell
 	int sym_state;  //used to write a cell symbol correspoding to a state
@@ -205,12 +208,13 @@ int main(int argc, char const *argv[]){
 	for(i = 1; i <= prop->tot_steps; ++i){
 		for(j = 1; j <= prop->tot_steps+3; ++j){
 			writeLiteralState(i, j, accept_state);
+			// writeLiteralId(i, j, cell_sym_len-1);
 		}
 	}
 	endClause();
+	fflush(formula);
 
 	//Phi-cell 
-	//FIXME don't write literals associated with unknown symbols, don't even add them in the alphabet (is this needed?)
 	fprintf(formula, "c ##### Phi-cell #####\n");
 	for(i = 1; i <= prop->tot_steps; ++i){
 		for(j = 1; j <= prop->tot_steps+3; ++j){
@@ -234,24 +238,40 @@ int main(int argc, char const *argv[]){
 
 		}
 	}	
+	fflush(formula);
 
 	//Phi-move
 	fprintf(formula, "c ##### Phi-move #####\n");
 	window_node * legal_windows = malloc(sizeof(window_node));
 	calculateLegalWindows(legal_windows, prop);
-	printWindows(legal_windows);
-	// printProperties(prop);
 
 	//Write and convert legal windows in conjunctive normal form
-	writeWindowsCnf(windows_cnf, legal_windows);
+	writeWindowsCnf(windows_cnf, legal_windows, prop);
+	lines = countLines(windows_cnf);
 
-	// while(legal_windows->next != NULL){
-	// write all of windows_cnf into formula
-	// }
-
-
-	fflush(windows_cnf);
+	for(i = 1; i < prop->tot_steps; ++i){
+		for(j = 2; j < prop->tot_steps+3; ++j){
+			fprintf(formula, "c ## Window [%d,%d] ##\n", i, j);
+			for(k = 0; k < lines-1; ++k){ //parse ids from file
+				for(h = 0; h < cell_sym_len; ++h){
+					c = fgetc(windows_cnf);
+					if(c != '!'){
+						writeLiteralId(i, j, h);
+					}else{
+						writeLiteralIdNegated(i, j, h);
+						c = fgetc(windows_cnf); //skip this literal and go to the next
+					}
+				}
+				endClause();
+				c = fgetc(windows_cnf); //go to next line
+			}
+			rewind(windows_cnf);
+		}
+	}
 	fflush(formula);
+	printf("Done.\n");
+	printf("Literals:%d Clauses:%d\n", literals, clauses);
+
 	fclose(windows_cnf);
 	fclose(formula);
 
@@ -260,8 +280,54 @@ int main(int argc, char const *argv[]){
 	return 0;
 }
 
-void writeWindowsCnf(FILE * f, window_node * w){
+void writeWindowsCnf(FILE * f, window_node * w, tm_properties * prop){
+    int i, j, cell_sym_len = prop->alphabet_length + prop->states_length;
+	bool table_row[cell_sym_len+1];
 
+	//Evaluate each row of truth table
+	for(i = 0; i < powint(2, cell_sym_len); ++i){
+		toBinaryString(table_row, i, cell_sym_len);	
+		if(!evaluateWindowDnfExpression(table_row, w, prop)){ //let's write x if the literal is false and !x if it's true (we write ids)
+			for(j = 0; j < cell_sym_len; ++j){
+				if(table_row[j])
+					fprintf(f, "!%d", j);
+				else
+					fprintf(f, "%d", j);
+				
+			}
+			fprintf(f, "\n");
+		}
+	}
+	fflush(f);
+	rewind(f);
+}
+
+bool evaluateWindowDnfExpression(bool * truth_values, window_node * w, tm_properties * prop){
+	bool clause[7]; //for each window assign truth values then evaluate
+	while(w->next != NULL){
+		// printSingleWindow(w->window);
+		for(int i = 0; i < 6; ++i){
+			if(isStateWindow(w->window[i]))
+				clause[i] = truth_values[decodeStateId(w->window[i]) + prop->alphabet_length];
+			else
+				clause[i] = truth_values[symbolId(w->window[i], prop)];
+		}
+		clause[6] = '\0';
+		w = w->next;
+
+		if(evaluateWindowDnfClause())
+			return true;
+	}
+
+	return false;
+}
+
+void toBinaryString(bool * dest, int n, int len){
+    for(int b = powint(2, len-1); b > 0; b >>= 1){ //powint(2, len-1) is the msb
+        *dest = (((n & b) == b) ? true : false);
+        dest++;
+    }
+    *dest = '\0';
 }
 
 int normalizeInput(FILE * dest, FILE * src){ //TODO what if input empty
@@ -321,11 +387,11 @@ bool contains(char * str, char c, int len){
 //the set of possible cell symbols will be formed like this:
 //"#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
 //TODO refactor this to use isState macro and take as input s an int and treat it as a char
-int literalId(int i, int j, void * s, bool isState, tm_properties * prop){
+int literalId(int i, int j, void * s, bool state, tm_properties * prop){
 	int cell_sym_len = prop->alphabet_length + prop->states_length;
 	int s_id, offset;
 
-	if(isState)
+	if(state)
 		s_id = prop->alphabet_length + stateId(*(int *)s, prop);
 	else
 		s_id = symbolId(*(char *)s, prop);

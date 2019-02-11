@@ -66,6 +66,16 @@ int listlength(char_node * l){
 	return r;
 }
 
+int powint(int x, int y){
+	int r = 1;
+	if(y > 0){
+		for(y; y > 0; y--){
+			r *= x;
+		}
+	}
+	return r;
+}
+
 void listdeallocatechar(char_node * l){
 	while(l->next != NULL){
 		l = l->next;
