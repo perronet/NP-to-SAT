@@ -14,6 +14,7 @@
 #define false 0
 #define forever for(;;)
 #define decodeStateId(X) (abs(X)-1)
+#define MAX_INT_DIGITS 10
 
 //Structures
 
@@ -57,6 +58,8 @@ typedef struct tm_properties{
 	int alphabet_length;
 	int states_length;
 	int tot_steps; //used to put an upper bound to the computation steps
+	int table_height;
+	int table_width;
 } tm_properties;
 
 //Functions

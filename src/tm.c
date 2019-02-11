@@ -4,8 +4,9 @@
 #include "tm_lib.h"
 
 #define FORMULAFILE "formula"
+#define MOVE
 // #define SLOW
-// #define SLEEP_TIME 50*1000
+#define SLEEP_TIME 2000*1000
 
 #define clearConsole() printf("\e[1;1H\e[2J")
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
@@ -38,6 +39,8 @@ char_node * blankNode(char_node * prev);
 bool contains(char * str, char c, int len);
 
 void printTransition(int state, char symbol, transition * tr);
+
+FILE * writeInt(FILE * f, int n);
 
 //Given cell coordinates and cell symbol returns unique id for that boolean varaible
 //Cell symbols = {alphabet}U{states}
@@ -170,45 +173,51 @@ int main(int argc, char const *argv[]){
 
 #ifdef FORMULA
 
-	FILE * formula = fopen(FORMULAFILE, "w");
+	FILE * formula = fopen(FORMULAFILE, "w+");
 	FILE * windows_cnf = fopen("windows_cnf", "w+");
 	prop->tot_steps = curr_steps;
 	printProperties(prop);
-	printf("Calculating formula ...\n");
 
 	//Calculate the 4 parts of the formula
 	int k, h, lines, clauses = 0, literals = 0, input_length = strlen(prop->input_string); 
-	int accept_state = prop->states[prop->states_length-1];
 	int cell_sym_len = prop->alphabet_length + prop->states_length; //total number of possible symbols in a cell
+	int accept_state_id = cell_sym_len-1, initial_state_id = prop->alphabet_length;
 	int sym_state;  //used to write a cell symbol correspoding to a state
 	char sym;		//used to write a cell symbol correspoding to an alphabet symbol
 
+	prop->table_height = prop->tot_steps+1;   //The initial configuration must also be counted
+	prop->table_width = prop->table_height+3; //Must count 2 delimiters '#' and 1 state cell
+	printf("Height: %d\n", prop->table_height);
+	printf("Width: %d\n\n", prop->table_width);
+	printf("Calculating formula ...\n");
+
 	//Phi-start
-	fprintf(formula, "p cnf %d %d\n", maxLiteralId(prop), prop->tot_steps+4); //syntax: p cnf n_variables n_clauses
-	fprintf(formula, "c ##### Phi-start #####\n");				              //TODO write here clause number
+	printf("Calculating phi-start ...\n");
+	fprintf(formula, "p cnf %d @         \n", maxLiteralId(prop)); //syntax: p cnf n_variables n_clauses
+	fprintf(formula, "c ##### Phi-start #####\n");
 	writeLiteral(1, 1, '#');
 	endClause();
-	writeLiteralState(1, 2, prop->states[0]);
+	writeLiteralId(1, 2, initial_state_id);
 	endClause();
 	fflush(formula);
 	for(j = 0; j < input_length; ++j){
-		writeLiteral(1, j+3, prop->input_string[j]); //+3 needed because there are always 2 delimiters '#' and 1 state
+		writeLiteral(1, j+3, prop->input_string[j]);
 		endClause();
 	}
-	for(j; j < prop->tot_steps; ++j){
-		writeLiteral(1, j+3, '_');
+	for(j += 3; j < prop->table_width; ++j){
+		writeLiteral(1, j, '_');
 		endClause();
 	}
-	writeLiteral(1, j+3, '#');
+	writeLiteral(1, j, '#');
 	endClause();
 	fflush(formula);
 
 	//Phi-accept
+	printf("Calculating phi-accept ...\n");
 	fprintf(formula, "c ##### Phi-accept #####\n");
-	for(i = 1; i <= prop->tot_steps; ++i){
-		for(j = 1; j <= prop->tot_steps+3; ++j){
-			writeLiteralState(i, j, accept_state);
-			// writeLiteralId(i, j, cell_sym_len-1);
+	for(i = 1; i <= prop->table_height; ++i){
+		for(j = 1; j <= prop->table_width; ++j){
+			writeLiteralId(i, j, accept_state_id);
 		}
 	}
 	endClause();
@@ -216,8 +225,9 @@ int main(int argc, char const *argv[]){
 
 	//Phi-cell 
 	fprintf(formula, "c ##### Phi-cell #####\n");
-	for(i = 1; i <= prop->tot_steps; ++i){
-		for(j = 1; j <= prop->tot_steps+3; ++j){
+	printf("Calculating phi-cell ...\n");
+	for(i = 1; i <= prop->table_height; ++i){
+		for(j = 1; j <= prop->table_width; ++j){
 			fprintf(formula, "c ## Cell [%d,%d] ##\n", i, j);
 
 			for(k = 0; k < cell_sym_len; ++k){
@@ -240,17 +250,22 @@ int main(int argc, char const *argv[]){
 	}	
 	fflush(formula);
 
+#ifdef MOVE
 	//Phi-move
 	fprintf(formula, "c ##### Phi-move #####\n");
+	printf("Calculating phi-move ...\n");
 	window_node * legal_windows = malloc(sizeof(window_node));
 	calculateLegalWindows(legal_windows, prop);
+	printWindows(legal_windows);
 
 	//Write and convert legal windows in conjunctive normal form
+	printf("Converting into cnf ...\n");
 	writeWindowsCnf(windows_cnf, legal_windows, prop);
 	lines = countLines(windows_cnf);
 
-	for(i = 1; i < prop->tot_steps; ++i){
-		for(j = 2; j < prop->tot_steps+3; ++j){
+	printf("Parsing windows_cnf ...\n");
+	for(i = 1; i < prop->table_height; ++i){
+		for(j = 2; j < prop->table_width; ++j){
 			fprintf(formula, "c ## Window [%d,%d] ##\n", i, j);
 			for(k = 0; k < lines-1; ++k){ //parse ids from file
 				for(h = 0; h < cell_sym_len; ++h){
@@ -269,6 +284,17 @@ int main(int argc, char const *argv[]){
 		}
 	}
 	fflush(formula);
+#endif
+
+	//Write clause count
+	fflush(formula);
+	rewind(formula);
+	c = fgetc(formula);
+	while(c != '@')
+		c = fgetc(formula);
+	fseek(formula, -1, SEEK_CUR);
+	writeInt(formula, clauses);
+
 	printf("Done.\n");
 	printf("Literals:%d Clauses:%d\n", literals, clauses);
 
@@ -278,6 +304,14 @@ int main(int argc, char const *argv[]){
 #endif//FORMULA
 
 	return 0;
+}
+
+FILE * writeInt(FILE * f, int n){
+	char str[MAX_INT_DIGITS+1];
+	sprintf(str, "%d", n);
+	fprintf(f, "%s", str);
+
+	return f;
 }
 
 void writeWindowsCnf(FILE * f, window_node * w, tm_properties * prop){
@@ -397,7 +431,7 @@ int literalId(int i, int j, void * s, bool state, tm_properties * prop){
 		s_id = symbolId(*(char *)s, prop);
 	
 	offset = -cell_sym_len+s_id+1;
-	return (i-1)*(prop->tot_steps+3)+(j*cell_sym_len)+offset;
+	return (i-1)*prop->table_width*cell_sym_len + (j*cell_sym_len) + offset;
 }
 
 //Symbol/state id is given
@@ -405,7 +439,7 @@ int literalIdGiven(int i, int j, int s_id, tm_properties * prop){
 	int cell_sym_len = prop->alphabet_length + prop->states_length;
 	int offset = -cell_sym_len+s_id+1;
 
-	return (i-1)*(prop->tot_steps+3)+(j*cell_sym_len)+offset;
+	return (i-1)*prop->table_width*cell_sym_len + (j*cell_sym_len) + offset;
 }
 
 //Returns state index
@@ -430,8 +464,8 @@ int symbolId(char c, tm_properties * prop){
 
 //The highest literal id is in the bottom right corner, it will always be the accept state
 int maxLiteralId(tm_properties * prop){ 
-	int sym_state = prop->states[prop->states_length-1];
-	return literalId(prop->tot_steps, prop->tot_steps+3, &sym_state, true, prop);
+	int accept_state_id = prop->alphabet_length + prop->states_length - 1;
+	return literalIdGiven(prop->table_height, prop->table_width, accept_state_id, prop);
 }
 
 void calculateLegalWindows(window_node * legal_windows, tm_properties * prop){
