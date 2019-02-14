@@ -66,6 +66,20 @@ int listlength(char_node * l){
 	return r;
 }
 
+int listlengthWindows(window_node * l){
+	int r;
+	if(l != NULL){
+		r = 1;
+		while(l->next != NULL){
+			l = l->next;
+			r++;
+		}
+	}else{
+		r = 0;
+	}
+	return r;
+}
+
 int powint(int x, int y){
 	int r = 1;
 	if(y > 0){

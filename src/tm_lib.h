@@ -73,6 +73,7 @@ void listcpystring(char_node * l, char * str);
 char * listcpystring_new(char_node * l);
 
 int listlength(char_node * l);
+int listlengthWindows(window_node * l);
 
 char * enumToString(char * str, enum action a);
 
@@ -97,11 +98,5 @@ window_node * addWindow(window_node * last);
 void printWindows(window_node * l);
 permutation_node * addPermutation(permutation_node * last);
 void printPermutations(permutation_node * l);
-
-// int * intListToArray(int_node * l);
-
-// bool list_contains();
-
-// bool array_contains();
 
 #endif

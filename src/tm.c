@@ -6,17 +6,16 @@
 #define FORMULAFILE "formula"
 #define MOVE
 // #define SLOW
-#define SLEEP_TIME 2000*1000
+// #define SLEEP_TIME 400*1000
 
 #define clearConsole() printf("\e[1;1H\e[2J")
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 #define isState(X) (X >= prop->alphabet_length)
 #define isStateWindow(X) (X < 0)
-#define encodeStateId(X) (-(X+1))
-#define decodeStateId(X) (abs(X)-1)
-#define isAccOrRejState(X) (isStateWindow(X) && decodeStateId(X) >= cell_sym_len-2)
-#define evaluateWindowDnfClause() (clause[0] && clause[1] && clause[2] && clause[3] && clause[4] && clause[5])
+#define encodeStateId(X) (-(X+1)) //must encode/decode as index in the states array
+#define decodeStateId(X) (abs(X)-1) 
+#define isAccOrRejState(X) (isStateWindow(X) && decodeStateId(X)+prop->alphabet_length >= cell_sym_len-2)
 
 #define writeTopRow() win_ptr->window[0]=perm_ptr->permutation[0];win_ptr->window[1]=perm_ptr->permutation[1];win_ptr->window[2]=perm_ptr->permutation[2]
 #define writeBottomRow(A, B, C) win_ptr->window[3]=A;win_ptr->window[4]=B;win_ptr->window[5]=C
@@ -26,6 +25,11 @@
 #define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%d ", literalIdGiven(I, J, X, prop));literals++
 #define writeLiteral(I, J, X) sym=X;fprintf(formula, "%d ", literalId(I, J, &sym, false, prop));literals++
 #define writeLiteralState(I, J, X) sym_state=X;fprintf(formula, "%d ", literalId(I, J, &sym_state, true, prop));literals++
+#define writeNewLiteral(X) fprintf(formula, "%d ", X);literals++
+#define writeNewLiteralNegated(X) fprintf(formula, "-%d ", X);literals++
+#define writeWindowElement(I, J, N) writeLiteralId(I, J, (isStateWindow(win_ptr->window[N]) ? \
+									decodeStateId(win_ptr->window[N])+prop->alphabet_length : \
+									symbolId(win_ptr->window[N], prop)))
 #define endClause() fprintf(formula, "0\n");clauses++
 
 int normalizeInput(FILE * dest, FILE * src);
@@ -52,9 +56,7 @@ int maxLiteralId(tm_properties * prop);
 
 void calculatePermutations(permutation_node * l, tm_properties * prop);
 void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
-void writeWindowsCnf(FILE * f, window_node * w, tm_properties * prop);
-void toBinaryString(char * dest, int n, int len);
-bool evaluateWindowDnfExpression(char * str, window_node * w, tm_properties * prop);
+// void writeWindowsCnf(FILE * windows_cnf, window_node * w, tm_properties * prop);
 
 int main(int argc, char const *argv[]){
 	FILE * input = fopen("input_string", "r");
@@ -165,6 +167,7 @@ int main(int argc, char const *argv[]){
 		printf("Error: '_' and '#' characters are not allowed in input string!\n");
 	}
 
+	//TODO seg fault if error happened
 	free(tr);
 	listdeallocatechar(tape);
 	fclose(input);
@@ -179,7 +182,8 @@ int main(int argc, char const *argv[]){
 	printProperties(prop);
 
 	//Calculate the 4 parts of the formula
-	int k, h, lines, clauses = 0, literals = 0, input_length = strlen(prop->input_string); 
+	int k, h, win_len, clauses = 0, literals = 0, input_length = strlen(prop->input_string);
+	int dnf_clause_var, curr_max_id; 
 	int cell_sym_len = prop->alphabet_length + prop->states_length; //total number of possible symbols in a cell
 	int accept_state_id = cell_sym_len-1, initial_state_id = prop->alphabet_length;
 	int sym_state;  //used to write a cell symbol correspoding to a state
@@ -255,39 +259,62 @@ int main(int argc, char const *argv[]){
 	fprintf(formula, "c ##### Phi-move #####\n");
 	printf("Calculating phi-move ...\n");
 	window_node * legal_windows = malloc(sizeof(window_node));
+	window_node * win_ptr;
 	calculateLegalWindows(legal_windows, prop);
-	printWindows(legal_windows);
+	// printWindows(legal_windows);
+	printProperties(prop);
 
 	//Write and convert legal windows in conjunctive normal form
 	printf("Converting into cnf ...\n");
-	writeWindowsCnf(windows_cnf, legal_windows, prop);
-	lines = countLines(windows_cnf);
+	win_len = listlengthWindows(legal_windows)-1;
+	curr_max_id = maxLiteralId(prop)+1;
 
-	printf("Parsing windows_cnf ...\n");
 	for(i = 1; i < prop->table_height; ++i){
 		for(j = 2; j < prop->table_width; ++j){
 			fprintf(formula, "c ## Window [%d,%d] ##\n", i, j);
-			for(k = 0; k < lines-1; ++k){ //parse ids from file
-				for(h = 0; h < cell_sym_len; ++h){
-					c = fgetc(windows_cnf);
-					if(c != '!'){
-						writeLiteralId(i, j, h);
-					}else{
-						writeLiteralIdNegated(i, j, h);
-						c = fgetc(windows_cnf); //skip this literal and go to the next
-					}
-				}
-				endClause();
-				c = fgetc(windows_cnf); //go to next line
+
+			dnf_clause_var = curr_max_id;
+			for(k = 0; k < win_len; ++k){ //each window is a clause of the DNF phi-move, we introduce a new var for each clause
+				writeNewLiteral(curr_max_id);
+				curr_max_id++;
 			}
-			rewind(windows_cnf);
+			endClause();
+
+			win_ptr = legal_windows;
+			while(win_ptr->next != NULL){
+				writeNewLiteralNegated(dnf_clause_var);		
+				writeWindowElement(i, j-1, 0);
+				endClause();
+
+				writeNewLiteralNegated(dnf_clause_var);
+				writeWindowElement(i, j, 1);
+				endClause();
+
+				writeNewLiteralNegated(dnf_clause_var);
+				writeWindowElement(i, j+1, 2);
+				endClause();
+
+				writeNewLiteralNegated(dnf_clause_var);
+				writeWindowElement(i+1, j-1, 3);
+				endClause();
+
+				writeNewLiteralNegated(dnf_clause_var);
+				writeWindowElement(i+1, j, 4);
+				endClause();
+
+				writeNewLiteralNegated(dnf_clause_var);
+				writeWindowElement(i+1, j+1, 5);
+				endClause();
+
+				dnf_clause_var++;
+				win_ptr = win_ptr->next;
+			}
 		}
 	}
 	fflush(formula);
 #endif
 
 	//Write clause count
-	fflush(formula);
 	rewind(formula);
 	c = fgetc(formula);
 	while(c != '@')
@@ -296,7 +323,7 @@ int main(int argc, char const *argv[]){
 	writeInt(formula, clauses);
 
 	printf("Done.\n");
-	printf("Literals:%d Clauses:%d\n", literals, clauses);
+	printf("Literals:%d Clauses:%d Variables:%d\n", literals, clauses, curr_max_id-1);
 
 	fclose(windows_cnf);
 	fclose(formula);
@@ -306,68 +333,10 @@ int main(int argc, char const *argv[]){
 	return 0;
 }
 
-FILE * writeInt(FILE * f, int n){
-	char str[MAX_INT_DIGITS+1];
-	sprintf(str, "%d", n);
-	fprintf(f, "%s", str);
-
-	return f;
-}
-
-void writeWindowsCnf(FILE * f, window_node * w, tm_properties * prop){
-    int i, j, cell_sym_len = prop->alphabet_length + prop->states_length;
-	bool table_row[cell_sym_len+1];
-
-	//Evaluate each row of truth table
-	for(i = 0; i < powint(2, cell_sym_len); ++i){
-		toBinaryString(table_row, i, cell_sym_len);	
-		if(!evaluateWindowDnfExpression(table_row, w, prop)){ //let's write x if the literal is false and !x if it's true (we write ids)
-			for(j = 0; j < cell_sym_len; ++j){
-				if(table_row[j])
-					fprintf(f, "!%d", j);
-				else
-					fprintf(f, "%d", j);
-				
-			}
-			fprintf(f, "\n");
-		}
-	}
-	fflush(f);
-	rewind(f);
-}
-
-bool evaluateWindowDnfExpression(bool * truth_values, window_node * w, tm_properties * prop){
-	bool clause[7]; //for each window assign truth values then evaluate
-	while(w->next != NULL){
-		// printSingleWindow(w->window);
-		for(int i = 0; i < 6; ++i){
-			if(isStateWindow(w->window[i]))
-				clause[i] = truth_values[decodeStateId(w->window[i]) + prop->alphabet_length];
-			else
-				clause[i] = truth_values[symbolId(w->window[i], prop)];
-		}
-		clause[6] = '\0';
-		w = w->next;
-
-		if(evaluateWindowDnfClause())
-			return true;
-	}
-
-	return false;
-}
-
-void toBinaryString(bool * dest, int n, int len){
-    for(int b = powint(2, len-1); b > 0; b >>= 1){ //powint(2, len-1) is the msb
-        *dest = (((n & b) == b) ? true : false);
-        dest++;
-    }
-    *dest = '\0';
-}
-
 int normalizeInput(FILE * dest, FILE * src){ //TODO what if input empty
 	char c;
 	while((c = fgetc(src)) != EOF){
-		if(c == '#' || c == '_'){
+		if(c == '#'){ //TODO readd  || c == '_' after testing
 			return -1;
 		}else if(c != ' ' && c != '\n'){
 			fprintf(dest, "%c", c);
@@ -400,6 +369,14 @@ char_node * blankNode(char_node * prev){
 	r->next = NULL;
 
 	return r;
+}
+
+FILE * writeInt(FILE * f, int n){
+	char str[MAX_INT_DIGITS+1];
+	sprintf(str, "%d", n);
+	fprintf(f, "%s", str);
+
+	return f;
 }
 
 void printTransition(int state, char symbol, transition * tr){
@@ -624,7 +601,7 @@ void calculateLegalWindows(window_node * legal_windows, tm_properties * prop){
 		perm_ptr = perm_ptr->next;
 	}
 	
-	// printPermutations(permutations);
+	
 	listdeallocateperm(permutations);
 }
 

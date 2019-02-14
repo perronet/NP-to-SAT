@@ -1,11 +1,29 @@
-
-
-
 state0:
-_->ACCEPT
 a->1,_,r
+b->2,_,r
+_->ACCEPT
 
 state1:
-_->REJECT
-b->0,_,r
+a->1,a,r
+b->1,b,r
+_->3,_,l
 
+state2:
+a->2,a,r
+b->2,b,r
+_->4,_,l
+
+state3:
+a->5,_,l
+b->REJECT
+_->ACCEPT
+
+state4:
+b->5,_,l
+a->REJECT
+_->ACCEPT
+
+state5:
+a->5,a,l
+b->5,b,l
+_->0,_,r
