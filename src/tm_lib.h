@@ -4,17 +4,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 #include <ctype.h>
 #include <string.h>
 
 //Macros
 
+#define MAX_INT_DIGITS 10
 #define true 1
 #define false 0
-#define forever for(;;)
 #define decodeStateId(X) (abs(X)-1)
-#define MAX_INT_DIGITS 10
+#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
 
 //Structures
 
@@ -34,7 +34,7 @@ typedef struct permutation_node{
 typedef struct window_node{
 	int window[6];
 	struct window_node * next;
-}window_node;
+} window_node;
 
 enum action{
 	LEFT,
@@ -64,39 +64,40 @@ typedef struct tm_properties{
 
 //Functions
 
+//List
 char_node * listadd(char_node * l, char e);
-
-void listprint(char_node * l);
-
-void listcpystring(char_node * l, char * str);
-
-char * listcpystring_new(char_node * l);
-
+window_node * addWindow(window_node * last);
+permutation_node * addPermutation(permutation_node * last);
 int listlength(char_node * l);
 int listlengthWindows(window_node * l);
+void listcpystring(char_node * l, char * str);
+char * listcpystring_new(char_node * l);
 
-char * enumToString(char * str, enum action a);
-
-int powint(int x, int y);
-
+//Prints
+void listprint(char_node * l);
+void printWindows(window_node * l);
+void printPermutations(permutation_node * l);
 void printProperties(tm_properties * prop);
-
 void printarray(int * a, int len);
-
 void printSingleWindow(int * w);
-
 void printSinglePermutation(int * p);
+void printTransition(int state, char symbol, transition * tr);
 
+//File manipulation
 int countChars(FILE * f);
 int countLines(FILE * f);
+void writeInt(FILE * f, int n);
+//int readInt(FILE * f);
 
+//Deallocators
 void listdeallocatechar(char_node * l);
 void listdeallocateperm(permutation_node * l);
 void listdeallocatewin(window_node * l);
 
-window_node * addWindow(window_node * last);
-void printWindows(window_node * l);
-permutation_node * addPermutation(permutation_node * last);
-void printPermutations(permutation_node * l);
+//Utils
+char_node * blankNode(char_node * prev);
+bool contains(char * str, char c, int len);
+char * enumToString(char * str, enum action a);
+int powint(int x, int y);
 
 #endif

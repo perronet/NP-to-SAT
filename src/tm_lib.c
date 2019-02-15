@@ -1,7 +1,6 @@
 #include "tm_lib.h"
 
-//Char list functions
-
+//List
 char_node * listadd(char_node * l, char e){
 	char_node * new = malloc(sizeof(char_node));
 	new->elem = e;
@@ -16,40 +15,20 @@ char_node * listadd(char_node * l, char e){
 	return new;
 }
 
-void listprint(char_node * l){
-	printf("%c", l->elem);
-	while(l->next != NULL){
-		l = l->next;
-		printf("%c", l->elem);
-	}
-	printf("\n");
+window_node * addWindow(window_node * last){ //window array will be filled manually
+	window_node * new = malloc(sizeof(window_node));
+	last->next = new;
+	new->next = NULL;
+
+	return new; //this will be the new last
 }
 
-void listcpystring(char_node * l, char * str){
-	while(l->next != NULL){
-		*str = l->elem;
-		str++;
-		l = l->next;
-	}
-	*str = l->elem;
-	str++;
-	*str = '\0';
-}
+permutation_node * addPermutation(permutation_node * last){
+	permutation_node * new = malloc(sizeof(permutation_node));
+	last->next = new;
+	new->next = NULL;
 
-char * listcpystring_new(char_node * l){
-	int n = listlength(l);
-	char * string = malloc((n+1)*sizeof(char));
-	char * r = string;
-	while(l->next != NULL){
-		*string = l->elem;
-		string++;
-		l = l->next;
-	}
-	*string = l->elem;
-	string++;
-	*string = '\0';
-
-	return r;
+	return new;
 }
 
 int listlength(char_node * l){
@@ -80,50 +59,41 @@ int listlengthWindows(window_node * l){
 	return r;
 }
 
-int powint(int x, int y){
-	int r = 1;
-	if(y > 0){
-		for(y; y > 0; y--){
-			r *= x;
-		}
+void listcpystring(char_node * l, char * str){
+	while(l->next != NULL){
+		*str = l->elem;
+		str++;
+		l = l->next;
 	}
+	*str = l->elem;
+	str++;
+	*str = '\0';
+}
+
+char * listcpystring_new(char_node * l){
+	int n = listlength(l);
+	char * string = malloc((n+1)*sizeof(char));
+	char * r = string;
+	while(l->next != NULL){
+		*string = l->elem;
+		string++;
+		l = l->next;
+	}
+	*string = l->elem;
+	string++;
+	*string = '\0';
+
 	return r;
 }
 
-void listdeallocatechar(char_node * l){
+//Prints
+void listprint(char_node * l){
+	printf("%c", l->elem);
 	while(l->next != NULL){
 		l = l->next;
-		free(l->prev);
+		printf("%c", l->elem);
 	}
-	free(l);
-}
-
-void listdeallocateperm(permutation_node * l){ 
-	if(l->next != NULL){
-		listdeallocateperm(l->next);
-		free(l);
-	}else{
-		free(l);
-	}
-}
-
-void listdeallocatewin(window_node * l){ 
-	if(l->next != NULL){
-		listdeallocatewin(l->next);
-		free(l);
-	}else{
-		free(l);
-	}
-}
-
-//Window/permutation list functions
-
-window_node * addWindow(window_node * last){ //window array will be filled manually
-	window_node * new = malloc(sizeof(window_node));
-	last->next = new;
-	new->next = NULL;
-
-	return new; //this will be the new last
+	printf("\n");
 }
 
 void printWindows(window_node * l){
@@ -138,16 +108,6 @@ void printWindows(window_node * l){
 	}
 	printf("\n");
 }
-
-permutation_node * addPermutation(permutation_node * last){
-	permutation_node * new = malloc(sizeof(permutation_node));
-	last->next = new;
-	new->next = NULL;
-
-	return new;
-}
-
-//Utils
 
 void printPermutations(permutation_node * l){
 	int i = 1;
@@ -203,6 +163,13 @@ void printSinglePermutation(int * p){
 	printf("\n");
 }
 
+void printTransition(int state, char symbol, transition * tr){
+	char strmove[7];
+	enumToString(strmove, tr->move);
+	printf("Transition: %d, %c -> %d, %c, %s\n\n", state, symbol, tr->state, tr->symbol, strmove);
+}
+
+//File manipulation
 int countChars(FILE * f){
 	char c;
 	int r = 0;
@@ -230,6 +197,58 @@ int countLines(FILE * f){
 	return r;	
 }
 
+void writeInt(FILE * f, int n){
+	char str[MAX_INT_DIGITS+1];
+	sprintf(str, "%d", n);
+	fprintf(f, "%s", str);
+}
+
+//Deallocators
+void listdeallocatechar(char_node * l){
+	while(l->next != NULL){
+		l = l->next;
+		free(l->prev);
+	}
+	free(l);
+}
+
+void listdeallocateperm(permutation_node * l){ 
+	if(l->next != NULL){
+		listdeallocateperm(l->next);
+		free(l);
+	}else{
+		free(l);
+	}
+}
+
+void listdeallocatewin(window_node * l){ 
+	if(l->next != NULL){
+		listdeallocatewin(l->next);
+		free(l);
+	}else{
+		free(l);
+	}
+}
+
+//Utils
+char_node * blankNode(char_node * prev){
+	char_node * r = malloc(sizeof(char_node));
+	r->elem = '_';
+	r->prev = prev;
+	r->next = NULL;
+
+	return r;
+}
+
+bool contains(char * str, char c, int len){
+	for(int i = 0; i < len; ++i){
+		if(str[i] == c)
+			return true;
+	}
+
+	return false;
+}
+
 char * enumToString(char * str, enum action a){
 	switch(a){
 		case 0:
@@ -249,3 +268,13 @@ char * enumToString(char * str, enum action a){
 		break;
 	}
 } 
+
+int powint(int x, int y){
+	int r = 1;
+	if(y > 0){
+		for(y; y > 0; y--){
+			r *= x;
+		}
+	}
+	return r;
+}
