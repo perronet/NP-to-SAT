@@ -6,10 +6,12 @@
 #include <unistd.h>
 #include <ctype.h>
 #include <string.h>
+#include <limits.h>
 
 //Macros
 
-#define MAX_INT_DIGITS 10
+#define MAX_INT_DIGITS countDigitsInt(INT_MAX)
+#define MAX_LONG_DIGITS countDigitsLong(LONG_MAX)
 #define true 1
 #define false 0
 #define decodeStateId(X) (abs(X)-1)
@@ -86,8 +88,9 @@ void printTransition(int state, char symbol, transition * tr);
 //File manipulation
 int countChars(FILE * f);
 int countLines(FILE * f);
+int readInt(FILE * f, char * dest);
 void writeInt(FILE * f, int n);
-//int readInt(FILE * f);
+void writeLong(FILE * f, long n);
 
 //Deallocators
 void listdeallocatechar(char_node * l);
@@ -98,6 +101,7 @@ void listdeallocatewin(window_node * l);
 char_node * blankNode(char_node * prev);
 bool contains(char * str, char c, int len);
 char * enumToString(char * str, enum action a);
-int powint(int x, int y);
+int countDigitsInt(int n);
+int countDigitsLong(long n);
 
 #endif

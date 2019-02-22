@@ -197,9 +197,27 @@ int countLines(FILE * f){
 	return r;	
 }
 
+int readInt(FILE * f, char * dest){
+	int i;
+	char c = fgetc(f);
+    for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){ 
+        dest[i] = c;
+        c = fgetc(f);
+    }
+    dest[i] = '\0';
+
+    return strlen(dest);
+}
+
 void writeInt(FILE * f, int n){
 	char str[MAX_INT_DIGITS+1];
 	sprintf(str, "%d", n);
+	fprintf(f, "%s", str);
+}
+
+void writeLong(FILE * f, long n){
+	char str[MAX_LONG_DIGITS+1];
+	sprintf(str, "%li", n);
 	fprintf(f, "%s", str);
 }
 
@@ -269,12 +287,22 @@ char * enumToString(char * str, enum action a){
 	}
 } 
 
-int powint(int x, int y){
-	int r = 1;
-	if(y > 0){
-		for(y; y > 0; y--){
-			r *= x;
-		}
-	}
+int countDigitsInt(int n){
+	int r = 0;
+	while(n > 0){
+		n /= 10;
+		++r;
+	}	
+
+	return r;
+}
+
+int countDigitsLong(long n){
+	int r = 0;
+	while(n > 0){
+		n /= 10;
+		++r;
+	}	
+
 	return r;
 }

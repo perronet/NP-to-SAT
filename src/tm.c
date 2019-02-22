@@ -23,10 +23,10 @@
 #define writeWindow(A, B, C) writeTopRow();writeBottomRow(A, B, C);win_ptr=addWindow(win_ptr)
 
 //Macros to write in the formula file
-#define writeLiteralId(I, J, X) fprintf(formula, "%d ", literalId(I, J, X, prop));literals++
-#define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%d ", literalId(I, J, X, prop));literals++
-#define writeFreshLiteral(X) fprintf(formula, "%d ", X);literals++
-#define writeFreshLiteralNegated(X) fprintf(formula, "-%d ", X);literals++
+#define writeLiteralId(I, J, X) fprintf(formula, "%li ", literalId(I, J, X, prop));literals++
+#define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%li ", literalId(I, J, X, prop));literals++
+#define writeFreshLiteral(X) fprintf(formula, "%li ", X);literals++
+#define writeFreshLiteralNegated(X) fprintf(formula, "-%li ", X);literals++
 #define writeWindowElement(I, J, N) writeLiteralId(I, J, (isStateWindow(win_ptr->window[N]) ? \
 									decodeStateId(win_ptr->window[N])+prop->alphabet_length : \
 									symbolId(win_ptr->window[N], prop)))
@@ -38,13 +38,13 @@ int normalizeInput(FILE * dest, FILE * src);
 void getAlphabet(char * dest, char * src, int len);
 
 //Returns unique literal id that identifies the symbol s_id in the cell [i,j]
-int literalId(int i, int j, int s_id, tm_properties * prop);
+long literalId(int i, int j, int s_id, tm_properties * prop);
 //Returns state index in the states array
 int stateId(int s, tm_properties * prop);
 //Returns symbol index in the alphabet array
 int symbolId(char c, tm_properties * prop);
 //The highest literal id is in the bottom right corner, it will always be the accept state
-int maxLiteralId(tm_properties * prop);
+long maxLiteralId(tm_properties * prop);
 
 //Using legal permutations and delta, generates a list of all possible legal windows
 void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
@@ -61,6 +61,7 @@ int main(int argc, char const *argv[]){
 	char_node * head;
 	tm_properties * prop; //data needed to generate formula
 	char curr_symbol, c;
+	char * str_state_num = malloc((MAX_INT_DIGITS+1)*sizeof(char));
 	int i, j, len, curr_state, curr_steps = 0, head_offset = 0;
 	bool inputError = false;
 
@@ -68,7 +69,8 @@ int main(int argc, char const *argv[]){
 	tape->next = NULL;
 	head = tape;
 
-	curr_state = fgetc(state_list) - 48; //TODO it could be more than one digit
+	readInt(state_list, str_state_num);
+	curr_state = atoi(str_state_num); //initial state
 	rewind(state_list);
 
 	if(normalizeInput(input_clean, input) != -1){ //remove whitespace and newlines
@@ -91,12 +93,12 @@ int main(int argc, char const *argv[]){
 		    prop->alphabet_length = strlen(prop->alphabet);
 
 		    //Get state list
-			// len = countLines(state_list)-1; //TODO it could be more than one digit
-			len = countChars(state_list);
+			len = countLines(state_list)-1;
 			prop->states_length = len+2; //-1 and -2 (reject and accept) are included
 			prop->states = malloc((len+2)*sizeof(int));
 			for(i = 0; i < len; ++i){
-				prop->states[i] = fgetc(state_list) - 48;
+				readInt(state_list, str_state_num);
+				prop->states[i] = atoi(str_state_num);
 			}
 			prop->states[i] = -1; 
 			prop->states[i+1] = -2;
@@ -176,17 +178,16 @@ int main(int argc, char const *argv[]){
 		printProperties(prop);
 
 		//Calculate the 4 parts of the formula
-		int k, h, win_len, clauses = 0, literals = 0, input_length = strlen(prop->input_string);
-		int dnf_clause_var, curr_max_id; 
+		int k, h, win_len, input_length = strlen(prop->input_string);
 		int cell_sym_len = prop->alphabet_length + prop->states_length; //total number of possible symbols in a cell
 		int accept_state_id = cell_sym_len-1, initial_state_id = prop->alphabet_length;
 		int sym_state;  //used to write a cell symbol correspoding to a state
 		char sym;		//used to write a cell symbol correspoding to an alphabet symbol
+		long clauses = 0, literals = 0;
 
 		prop->table_height = prop->tot_steps+1;   //The initial configuration must also be counted
 		prop->table_width = prop->table_height+3; //Must count 2 delimiters '#' and 1 state cell
-		printf("Height: %d\n", prop->table_height);
-		printf("Width: %d\n\n", prop->table_width);
+		printf("Tableau size\nHeight: %d\nWidth: %d\n\n", prop->table_height, prop->table_width);
 		printf("Calculating formula ...\n");
 
 		//[i,j] identifies the position of each cell
@@ -199,7 +200,11 @@ int main(int argc, char const *argv[]){
 
 		//Phi-start
 		printf("Calculating phi-start ...\n");
-		fprintf(formula, "p cnf %d @         \n", maxLiteralId(prop)); //syntax: p cnf n_variables n_clauses
+		fprintf(formula, "p cnf @"); //syntax: p cnf n_variables n_clauses
+		for(i = 0; i < MAX_LONG_DIGITS*2; ++i){ //create space to write these two numbers later
+			fprintf(formula, " ");
+		}
+		fprintf(formula, "\n");
 		fprintf(formula, "c ##### Phi-start #####\n");
 		writeLiteralId(1, 1, symbolId('#', prop));
 		endClause();
@@ -262,11 +267,11 @@ int main(int argc, char const *argv[]){
 		window_node * legal_windows = malloc(sizeof(window_node));
 		window_node * win_ptr;
 		calculateLegalWindows(legal_windows, prop);
-		// printWindows(legal_windows);
-		// printProperties(prop);
 
 		//Write while converting legal windows in conjunctive normal form
 		printf("Converting into cnf ...\n");
+		long curr_max_id, dnf_clause_var;
+
 		win_len = listlengthWindows(legal_windows)-1;
 		curr_max_id = maxLiteralId(prop)+1;
 
@@ -314,16 +319,23 @@ int main(int argc, char const *argv[]){
 		}
 		fflush(formula);
 
-		//Write clause count //TODO write var count
+		//Write variable count followed by clause count
 		rewind(formula);
 		c = fgetc(formula);
-		while(c != '@')
+		while(c != '@') //used as placeholder
 			c = fgetc(formula);
 		fseek(formula, -1, SEEK_CUR);
-		writeInt(formula, clauses);
+		writeLong(formula, curr_max_id-1);
+		fprintf(formula, " ");
+		writeLong(formula, clauses);
+		fprintf(formula, "\n");
+		if(fgetc(formula) == ' '){
+			fseek(formula, -1, SEEK_CUR);
+			fprintf(formula, "c");
+		}
 
 		printf("Done.\n");
-		printf("Literals:%d Clauses:%d Variables:%d\n", literals, clauses, curr_max_id-1);
+		printf("Literals:%li Variables:%li Clauses:%li\n", literals, curr_max_id-1, clauses);
 
 		fclose(formula);
 	}
@@ -332,7 +344,7 @@ int main(int argc, char const *argv[]){
 	return 0;
 }
 
-int normalizeInput(FILE * dest, FILE * src){ //TODO what if input empty
+int normalizeInput(FILE * dest, FILE * src){
 	char c;
 	while((c = fgetc(src)) != EOF){
 		if(c == '#' || c == '_'){
@@ -361,7 +373,7 @@ void getAlphabet(char * dest, char * src, int len){
 
 //s_id is an index of this "imaginary" array of all possible cell symbols:
 //cell_sym = "#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
-int literalId(int i, int j, int s_id, tm_properties * prop){
+long literalId(int i, int j, int s_id, tm_properties * prop){
 	int cell_sym_len = prop->alphabet_length + prop->states_length;
 	int offset = -cell_sym_len+s_id+1;
 
@@ -386,7 +398,7 @@ int symbolId(char c, tm_properties * prop){
 	return -1;
 }
 
-int maxLiteralId(tm_properties * prop){ 
+long maxLiteralId(tm_properties * prop){ 
 	int accept_state_id = prop->alphabet_length + prop->states_length - 1;
 	return literalId(prop->table_height, prop->table_width, accept_state_id, prop);
 }

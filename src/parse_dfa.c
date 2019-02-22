@@ -39,17 +39,10 @@ int main(int argc, char const *argv[]){
             fseek(input_clean, -1, SEEK_CUR);
             if(!strcmp(fgets(str_state, 6, input_clean), "state")){ //state found
 
-                c = fgetc(input_clean);
-                for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){ //get state number
-                    str_state_num[i] = c;
-                    c = fgetc(input_clean);
-                }
-                str_state_num[i] = '\0';
-
-
+                readInt(input_clean, str_state_num); //get state number
                 if(c != EOF && isInteger(str_state_num)){
                     printf("State found %d\n", atoi(str_state_num));
-                    fprintf(state_list, "%d", atoi(str_state_num)); //TODO put \n again after testing
+                    fprintf(state_list, "%d\n", atoi(str_state_num)); 
                     fflush(state_list);
                     fprintf(output, "case %d:\n", atoi(str_state_num));
                 }else{
@@ -76,20 +69,13 @@ int main(int argc, char const *argv[]){
                                 fprintf(output, "t->move = REJECT;\n");
                             }else{
                                 //Must read exactly "integer,char,l or r\n" according to the syntax 
-                                fseek(input_clean, -6, SEEK_CUR);
-                                c = fgetc(input_clean);
-                                ptr = str_transition;
-                                num_length = 0;
-				                for(i = 0; i < MAX_INT_DIGITS && isdigit(c); ++i){
-				                    *ptr = c;
-				                    c = fgetc(input_clean);
-				                    num_length++;
-				                    ptr++;
-				                }
-				                fseek(input_clean, -1, SEEK_CUR);
-								fgets(ptr, 6, input_clean);
+                                fseek(input_clean, -strlen(str_acc), SEEK_CUR);
+                                num_length = readInt(input_clean, str_transition);
+                                fseek(input_clean, -1, SEEK_CUR);
+                                ptr = str_transition + num_length;
+                                fgets(ptr, 6, input_clean);
 
-				                //Check string syntax
+                                //Check string syntax
                                 strToTransition(str_transition, num_length, wellformed_transition);
                                 if(wellformed_transition->move != ERROR){
                                     fprintf(output, "t->state = %d;\n", wellformed_transition->state);
@@ -193,33 +179,33 @@ void strToTransition(char * str, int offset, transition * t){ //offset is the fi
 
     if(str[offset] == ',' && isascii(str[offset+1]) && str[offset+2] == ',' && 
       (str[offset+3] == 'l' || str[offset+3] == 'r') && str[offset+4] == '\n'){
-    	for(i = 0; i < offset; ++i){
-    		state_num[i] = str[i];
-    	}
-    	state_num[i] = '\0';
+        for(i = 0; i < offset; ++i){
+            state_num[i] = str[i];
+        }
+        state_num[i] = '\0';
 
-    	if(isInteger(state_num)){ //string is well formed
-    		t->state = atoi(state_num);
-        	t->symbol = str[offset+1];
-        	if(str[offset+3] == 'r')
-        		t->move = RIGHT;
-        	else
-        		t->move = LEFT;
-    	}else{
-    		t->move = ERROR;
-    	}
+        if(isInteger(state_num)){ //string is well formed
+            t->state = atoi(state_num);
+            t->symbol = str[offset+1];
+            if(str[offset+3] == 'r')
+                t->move = RIGHT;
+            else
+                t->move = LEFT;
+        }else{
+            t->move = ERROR;
+        }
     }else{
-    	t->move = ERROR;
+        t->move = ERROR;
     }
 }
 
 //Useful because atoi returns 0 if the string is not an integer, but the integer could be 0
 bool isInteger(char * str){ 
-	int num;
-	 
-	num = atoi(str);
-	if (num == 0 && str[0] != '0')
-	   return false;
-	else
-	   return true;
+    int num;
+     
+    num = atoi(str);
+    if (num == 0 && str[0] != '0')
+       return false;
+    else
+       return true;
 }
