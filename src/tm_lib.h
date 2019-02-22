@@ -23,45 +23,45 @@
 typedef char bool;
 
 typedef struct char_node{ //Used for the machine's tape
-	char elem;
-	struct char_node * prev;
-	struct char_node * next;
+    char elem;
+    struct char_node * prev;
+    struct char_node * next;
 } char_node;
 
 typedef struct permutation_node{
-	int permutation[3];
-	struct permutation_node * next;
+    int permutation[3];
+    struct permutation_node * next;
 } permutation_node;
 
 typedef struct window_node{
-	int window[6];
-	struct window_node * next;
+    int window[6];
+    struct window_node * next;
 } window_node;
 
 enum action{
-	LEFT,
-	RIGHT,
-	ACCEPT, //represented as -2 in the states array
-	REJECT, //represented as -1 in the states array
-	ERROR 
+    LEFT,
+    RIGHT,
+    ACCEPT, //represented as -2 in the states array
+    REJECT, //represented as -1 in the states array
+    ERROR 
 };
 
 typedef struct transition{
-	int state;
-	char symbol;
-	enum action move;
+    int state;
+    char symbol;
+    enum action move;
 } transition;
 
 //Resources used to reduce the problem to a boolean formula
 typedef struct tm_properties{ 
-	char * alphabet;
-	int * states;
-	char * input_string;
-	int alphabet_length;
-	int states_length;
-	int tot_steps; //used to put an upper bound to the computation steps
-	int table_height;
-	int table_width;
+    char * alphabet;
+    int * states;
+    char * input_string;
+    int alphabet_length;
+    int states_length;
+    int tot_steps; //used to put an upper bound to the computation steps
+    int table_height;
+    int table_width;
 } tm_properties;
 
 //Functions
