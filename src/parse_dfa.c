@@ -7,9 +7,9 @@ int normalizeInput(FILE * dest, FILE * src);
 
 void strToTransition(char * str, int offset, transition * t);
 
-bool isInteger(char * str);
+bool isInteger(const char * str);
 
-int main(int argc, char const *argv[]){
+int main(int argc, char **argv){
     FILE * input = fopen("input_program", "r");
     FILE * input_clean = fopen("input_clean", "w+");
     FILE * state_list = fopen("state_list", "w");
@@ -41,8 +41,7 @@ int main(int argc, char const *argv[]){
 
                 readInt(input_clean, str_state_num); //get state number
                 if(c != EOF && isInteger(str_state_num)){
-                    printf("State found %d\n", atoi(str_state_num));
-                    fprintf(state_list, "%d\n", atoi(str_state_num)); 
+                    fprintf(state_list, "%d\n", atoi(str_state_num));
                     fflush(state_list);
                     fprintf(output, "case %d:\n", atoi(str_state_num));
                 }else{
@@ -122,13 +121,76 @@ int main(int argc, char const *argv[]){
     system("rm input_clean");
 
     if(!errorOccurred){
-        //Compile the generated delta.c and execute tm
-        system("gcc -c delta.c");
-        system("gcc -c tm_lib.c");
-        system("gcc -D DELTA -D FORMULA -o tm.out tm_lib.o delta.o tm.c");
-        execve("./tm.out", NULL, NULL);
-        printf("Could not execve");
+        bool only_tm_flag, slowflag, stepsflag;
+        char * slowvalue;
+        only_tm_flag = slowflag = stepsflag = 0;
+        while((c = getopt(argc, argv, ":ts:")) != -1){ //parse options
+            switch (c) {
+            case 't':
+                only_tm_flag = 1;
+                break;
+            case 's':
+                slowflag = 1;
+                if(optarg[0] != '-'){  //read argument of -s
+                    slowvalue = optarg;
+                }else{                 //dont't read, it's another another parameter
+                    slowvalue = DEFAULT_SLEEP_TIME;
+                    optind--;
+                }
+                break;
+            case ':':
+                if(optopt == 's'){
+                    slowflag = 1;
+                    slowvalue = DEFAULT_SLEEP_TIME;
+                }
+                break;
+            case '?':
+                printf("Invalid option: -%c\n", optopt);
+                printf("Usage: ./run.out [-s sleep_time -t] [n_steps]\n");
+                return EXIT_FAILURE;
+            default:
+                printf("Usage: ./run.out [-s sleep_time -t] [n_steps]\n");
+                return EXIT_FAILURE;
+            }
+        }
+        if(optind < argc)
+            stepsflag = 1;
+
+        //Define macros according to input options
+        //Example of possible output string: "gcc -D DELTA -D FORMULA -D SLOW=500 -D STEPS=3000 -o tm.out delta.c tm_lib.c tm.c -I."
+        char slowstr[MAX_SLEEP_TIME_DIGITS+10];
+        char stepstr[MAX_INT_DIGITS+11];
+        char compilestr[80+MAX_SLEEP_TIME_DIGITS+MAX_INT_DIGITS];
+        sprintf(compilestr, "gcc -D DELTA");
+
+        if(!only_tm_flag)
+            strcat(compilestr, " -D FORMULA");
+        if(slowflag){
+            if(isInteger(slowvalue) && strlen(slowvalue) <= MAX_SLEEP_TIME_DIGITS){
+                sprintf(slowstr, " -D SLOW=%s", slowvalue);
+            }else{
+                printf("Error: sleep time is invalid\n");
+                return EXIT_FAILURE;
+            }
+            strcat(compilestr, slowstr);
+        }
+        if(stepsflag){
+            if(isInteger(argv[optind]) && strlen(argv[optind]) <= MAX_INT_DIGITS){
+                sprintf(stepstr, " -D STEPS=%s", argv[optind]);
+            }else{
+                printf("Error: Steps number is invalid\n");
+                return EXIT_FAILURE;
+            }
+            strcat(compilestr, stepstr);
+        }
+        strcat(compilestr, " -o tm.out delta.c tm_lib.c tm.c -I.");
+
+        printf("%s\n", compilestr);
+        system(compilestr);             //compile
+        execve("./tm.out", NULL, NULL); //execute
+        printf("Could not execve\n");
         return EXIT_FAILURE;
+
     }else{
         if(errorline != 0)
             printf("Error at line %d: parse failed, check input syntax\n", errorline);
@@ -200,7 +262,7 @@ void strToTransition(char * str, int offset, transition * t){ //offset is the fi
 }
 
 //Useful because atoi returns 0 if the string is not an integer, but the integer could be 0
-bool isInteger(char * str){ 
+bool isInteger(const char * str){ 
     int num;
      
     num = atoi(str);

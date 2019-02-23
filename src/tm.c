@@ -7,8 +7,9 @@
 #define INPUTFILE "input_string"
 #define INPUTCLEANFILE "input_string_clean"
 #define STATESFILE "state_list"
-// #define SLOW
-#define SLEEP_TIME 300*1000
+#ifdef SLOW
+#define SLEEP_TIME SLOW*1000 //convert to microseconds
+#endif
 
 #define clearConsole() printf("\e[1;1H\e[2J")
 #define isState(X) (X >= prop->alphabet_length)
@@ -79,7 +80,7 @@ int main(int argc, char const *argv[]){
         curr_symbol = c;
 
         while((c = fgetc(input_clean)) != EOF)
-            listadd(tape, c);
+            listAdd(tape, c);
         rewind(input_clean);
 
 #ifdef FORMULA
@@ -88,7 +89,7 @@ int main(int argc, char const *argv[]){
         len = countChars(input_clean);
         prop->alphabet = malloc(sizeof(char)*(len+3)); //# and _ are included
         prop->input_string = malloc(sizeof(char)*(len+1));
-        listcpystring(tape, prop->input_string);
+        listToString(tape, prop->input_string);
         getAlphabet(prop->alphabet, prop->input_string, len); 
         prop->alphabet_length = strlen(prop->alphabet);
 
@@ -102,19 +103,13 @@ int main(int argc, char const *argv[]){
         }
         prop->states[i] = -1; 
         prop->states[i+1] = -2;
-        usleep(SLEEP_TIME);
 #endif
 
         while(tr->move != ACCEPT && tr->move != REJECT && tr->move != ERROR){
             clearConsole();
             printf("Computation steps: %d\n", curr_steps);
             printf("State: %d\n", curr_state);
-            for(i = 0; i < head_offset; ++i)
-                printf(" ");
-            printf("V\n");
-            listprint(tape);
-            printf("\n");
-
+            printTape(tape, head_offset);
             tr = delta(curr_state, curr_symbol);
             printTransition(curr_state, curr_symbol, tr);
             curr_state = tr->state;
@@ -164,10 +159,11 @@ int main(int argc, char const *argv[]){
     }
 
     free(tr);
-    listdeallocatechar(tape);
+    listDeallocateChar(tape);
     fclose(input);
     fclose(input_clean);
     fclose(state_list);
+    system("rm ./tm.out"); //remove this executable
     system("rm input_string_clean;rm state_list"); //TODO use filename macro
 
 #ifdef FORMULA
@@ -175,6 +171,12 @@ int main(int argc, char const *argv[]){
         FILE * formula = fopen(FORMULAFILE, "w+");
         prop->tot_steps = curr_steps;
         printProperties(prop);
+
+        //Use user input as upper bound
+        #ifdef STEPS
+            printf("Using %d as maximum amount of steps instead of %d\n\n", STEPS, prop->tot_steps);
+            prop->tot_steps = STEPS;
+        #endif
 
         //Calculate the 4 parts of the formula
         int k, h, win_len, input_length = strlen(prop->input_string);
@@ -187,7 +189,7 @@ int main(int argc, char const *argv[]){
         prop->table_height = prop->tot_steps+1;   //The initial configuration must also be counted
         prop->table_width = prop->table_height+3; //Must count 2 delimiters '#' and 1 state cell
         printf("Tableau size\nHeight: %d\nWidth: %d\n\n", prop->table_height, prop->table_width);
-        printf("Calculating formula ...\n");
+        printf("Computing formula ...\n");
 
         //[i,j] identifies the position of each cell
         //Cell symbols = {alphabet}U{states}
@@ -198,7 +200,7 @@ int main(int argc, char const *argv[]){
         //i,j are 1-based, cell_sym is 0-based  
 
         //Phi-start
-        printf("Calculating phi-start ...\n");
+        printf("Computing phi-start ...\n");
         fprintf(formula, "p cnf @"); //syntax: "p cnf n_variables n_clauses"
         for(i = 0; i < MAX_LONG_DIGITS*2; ++i) //create space to write these two numbers later
             fprintf(formula, " ");
@@ -222,7 +224,7 @@ int main(int argc, char const *argv[]){
         fflush(formula);
 
         //Phi-accept
-        printf("Calculating phi-accept ...\n");
+        printf("Computing phi-accept ...\n");
         fprintf(formula, "c ##### Phi-accept #####\n");
         for(i = 1; i <= prop->table_height; ++i){
             for(j = 1; j <= prop->table_width; ++j){
@@ -234,7 +236,7 @@ int main(int argc, char const *argv[]){
 
         //Phi-cell 
         fprintf(formula, "c ##### Phi-cell #####\n");
-        printf("Calculating phi-cell ...\n");
+        printf("Computing phi-cell ...\n");
         for(i = 1; i <= prop->table_height; ++i){
             for(j = 1; j <= prop->table_width; ++j){
                 fprintf(formula, "c ## Cell [%d,%d] ##\n", i, j);
@@ -261,7 +263,7 @@ int main(int argc, char const *argv[]){
 
         //Phi-move
         fprintf(formula, "c ##### Phi-move #####\n");
-        printf("Calculating phi-move ...\n");
+        printf("Computing phi-move ...\n");
         window_node * legal_windows = malloc(sizeof(window_node));
         window_node * win_ptr;
         calculateLegalWindows(legal_windows, prop);
@@ -270,7 +272,7 @@ int main(int argc, char const *argv[]){
         printf("Converting into cnf ...\n");
         long curr_max_id, dnf_clause_var;
 
-        win_len = listlengthWindows(legal_windows)-1;
+        win_len = listLengthWindows(legal_windows)-1;
         curr_max_id = maxLiteralId(prop)+1;
 
         for(i = 1; i < prop->table_height; ++i){
@@ -335,11 +337,12 @@ int main(int argc, char const *argv[]){
         printf("Done.\n");
         printf("Literals:%li Variables:%li Clauses:%li\n", literals, curr_max_id-1, clauses);
 
+        listDeallocateWin(legal_windows);
         fclose(formula);
     }
 #endif//FORMULA
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 int normalizeInput(FILE * dest, FILE * src){
@@ -558,7 +561,7 @@ void calculateLegalWindows(window_node * legal_windows, tm_properties * prop){
         perm_ptr = perm_ptr->next;
     }
     
-    listdeallocateperm(permutations);
+    listDeallocatePerm(permutations);
 }
 
 void calculatePermutations(permutation_node * l, tm_properties * prop){

@@ -1,7 +1,7 @@
 #include "tm_lib.h"
 
 //List
-char_node * listadd(char_node * l, char e){
+char_node * listAdd(char_node * l, char e){
     char_node * new = malloc(sizeof(char_node));
     new->elem = e;
     
@@ -31,7 +31,7 @@ permutation_node * addPermutation(permutation_node * last){
     return new;
 }
 
-int listlength(char_node * l){
+int listLength(char_node * l){
     int r;
     if(l != NULL){
         r = 1;
@@ -45,7 +45,7 @@ int listlength(char_node * l){
     return r;
 }
 
-int listlengthWindows(window_node * l){
+int listLengthWindows(window_node * l){
     int r;
     if(l != NULL){
         r = 1;
@@ -59,7 +59,7 @@ int listlengthWindows(window_node * l){
     return r;
 }
 
-void listcpystring(char_node * l, char * str){
+void listToString(char_node * l, char * str){
     while(l->next != NULL){
         *str = l->elem;
         str++;
@@ -70,8 +70,8 @@ void listcpystring(char_node * l, char * str){
     *str = '\0';
 }
 
-char * listcpystring_new(char_node * l){
-    int n = listlength(l);
+char * listToStringNew(char_node * l){
+    int n = listLength(l);
     char * string = malloc((n+1)*sizeof(char));
     char * r = string;
     while(l->next != NULL){
@@ -87,7 +87,7 @@ char * listcpystring_new(char_node * l){
 }
 
 //Prints
-void listprint(char_node * l){
+void printList(char_node * l){
     printf("%c", l->elem);
     while(l->next != NULL){
         l = l->next;
@@ -109,37 +109,6 @@ void printWindows(window_node * l){
     printf("\n");
 }
 
-void printPermutations(permutation_node * l){
-    int i = 1;
-    printf("Permutation #0\n");
-    printSinglePermutation(l->permutation);
-    while(l->next != NULL){
-        l = l->next;
-        printf("Permutation #%d\n", i);
-        printSinglePermutation(l->permutation);
-        i++;
-    }
-    printf("\n");
-}
-
-void printProperties(tm_properties * prop){
-    printf("Turing machine data:\n");
-    printf("Alphabet: %s\n", prop->alphabet);
-    printf("Input string: %s\n", prop->input_string);
-    printf("States: ");
-    printarray(prop->states, prop->states_length);
-    printf("Alphabet length: %d\n", prop->alphabet_length);
-    printf("States length: %d\n", prop->states_length);
-    printf("Total steps: %d\n\n", prop->tot_steps);
-}
-
-void printarray(int * a, int len){
-    for(int i = 0; i < len; ++i){
-        printf("%d ", a[i]);
-    }
-    printf("\n");
-}
-
 void printSingleWindow(int * w){
     for(int i = 0; i < 6; ++i){
         if(w[i] < 0)
@@ -149,6 +118,19 @@ void printSingleWindow(int * w){
 
         if(i == 2)
             printf("\n");
+    }
+    printf("\n");
+}
+
+void printPermutations(permutation_node * l){
+    int i = 1;
+    printf("Permutation #0\n");
+    printSinglePermutation(l->permutation);
+    while(l->next != NULL){
+        l = l->next;
+        printf("Permutation #%d\n", i);
+        printSinglePermutation(l->permutation);
+        i++;
     }
     printf("\n");
 }
@@ -163,10 +145,39 @@ void printSinglePermutation(int * p){
     printf("\n");
 }
 
+void printProperties(tm_properties * prop){
+    printf("Turing machine data:\n");
+    printf("Alphabet: %s\n", prop->alphabet);
+    printf("Input string: %s\n", prop->input_string);
+    printf("States: ");
+    printArray(prop->states, prop->states_length);
+    printf("Alphabet length: %d\n", prop->alphabet_length);
+    printf("States length: %d\n", prop->states_length);
+    printf("Total steps: %d\n\n", prop->tot_steps);
+}
+
+void printArray(int * a, int len){
+    for(int i = 0; i < len; ++i){
+        printf("%d ", a[i]);
+    }
+    printf("\n");
+}
+
+void printTape(char_node * tape, int head_offset){
+    for(int i = 0; i < head_offset; ++i)
+        printf(" ");
+    printf("V\n");
+    printList(tape);
+    printf("\n");
+}
+
 void printTransition(int state, char symbol, transition * tr){
     char strmove[7];
     enumToString(strmove, tr->move);
-    printf("Transition: %d, %c -> %d, %c, %s\n\n", state, symbol, tr->state, tr->symbol, strmove);
+    if(tr->move == ACCEPT || tr->move == REJECT || tr->move == ERROR)
+        printf("Transition: %d, %c -> %s\n\n", state, symbol, strmove);
+    else
+        printf("Transition: %d, %c -> %d, %c, %s\n\n", state, symbol, tr->state, tr->symbol, strmove);
 }
 
 //File manipulation
@@ -222,7 +233,7 @@ void writeLong(FILE * f, long n){
 }
 
 //Deallocators
-void listdeallocatechar(char_node * l){
+void listDeallocateChar(char_node * l){
     while(l->next != NULL){
         l = l->next;
         free(l->prev);
@@ -230,18 +241,18 @@ void listdeallocatechar(char_node * l){
     free(l);
 }
 
-void listdeallocateperm(permutation_node * l){ 
+void listDeallocatePerm(permutation_node * l){ 
     if(l->next != NULL){
-        listdeallocateperm(l->next);
+        listDeallocatePerm(l->next);
         free(l);
     }else{
         free(l);
     }
 }
 
-void listdeallocatewin(window_node * l){ 
+void listDeallocateWin(window_node * l){ 
     if(l->next != NULL){
-        listdeallocatewin(l->next);
+        listDeallocateWin(l->next);
         free(l);
     }else{
         free(l);

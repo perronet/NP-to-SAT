@@ -12,11 +12,13 @@
 
 #define MAX_INT_DIGITS countDigitsInt(INT_MAX)
 #define MAX_LONG_DIGITS countDigitsLong(LONG_MAX)
+#define MAX_SLEEP_TIME_DIGITS 5
+#define DEFAULT_SLEEP_TIME "500"
 #define true 1
 #define false 0
 #define decodeStateId(X) (abs(X)-1)
-#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
-#define max(X, Y)  ((X) > (Y) ? (X) : (Y))
+#define min(X, Y) ((X) < (Y) ? (X) : (Y))
+#define max(X, Y) ((X) > (Y) ? (X) : (Y))
 
 //Structures
 
@@ -67,22 +69,23 @@ typedef struct tm_properties{
 //Functions
 
 //List
-char_node * listadd(char_node * l, char e);
+char_node * listAdd(char_node * l, char e);
 window_node * addWindow(window_node * last);
 permutation_node * addPermutation(permutation_node * last);
-int listlength(char_node * l);
-int listlengthWindows(window_node * l);
-void listcpystring(char_node * l, char * str);
-char * listcpystring_new(char_node * l);
+int listLength(char_node * l);
+int listLengthWindows(window_node * l);
+void listToString(char_node * l, char * str);
+char * listToStringNew(char_node * l);
 
 //Prints
-void listprint(char_node * l);
+void printList(char_node * l);
 void printWindows(window_node * l);
-void printPermutations(permutation_node * l);
-void printProperties(tm_properties * prop);
-void printarray(int * a, int len);
 void printSingleWindow(int * w);
+void printPermutations(permutation_node * l);
 void printSinglePermutation(int * p);
+void printProperties(tm_properties * prop);
+void printArray(int * a, int len);
+void printTape(char_node * tape, int head_offset);
 void printTransition(int state, char symbol, transition * tr);
 
 //File manipulation
@@ -93,9 +96,9 @@ void writeInt(FILE * f, int n);
 void writeLong(FILE * f, long n);
 
 //Deallocators
-void listdeallocatechar(char_node * l);
-void listdeallocateperm(permutation_node * l);
-void listdeallocatewin(window_node * l);
+void listDeallocateChar(char_node * l);
+void listDeallocatePerm(permutation_node * l);
+void listDeallocateWin(window_node * l);
 
 //Utils
 char_node * blankNode(char_node * prev);
