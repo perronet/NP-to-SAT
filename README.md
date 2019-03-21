@@ -16,7 +16,7 @@ It's important to note that if the machine rejects then the resulting upper boun
 For example: Suppose the machine rejected at the first step and the input was 5 characters long, with a limit of only one step the machine wouldn't even be able to scan the whole input. So if the machine rejects you should try to give an higher upper bound, though because the machine rejected the formula will still be unsatisfiable for any bound.
 
 ## Quick start
-* Write your Turing Machine program in `input_program`, according to the syntax. You can find some programs in the examples folder. 
+* Write your Turing Machine program in `input_program`, according to the syntax. You can find some programs in the examples folder (TODO add the examples folder). 
 * Write your input in `input_string`
 * Compile with `make`
 * Execute with `./run.out`. *To input the maximum computational steps just give it as an argument like* `./run.out 40`
