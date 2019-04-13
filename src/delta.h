@@ -1,4 +1,4 @@
-#ifndef DELTA_H//include guard
+#ifndef DELTA_H
 #define DELTA_H
 #include"tm_lib.h"
 

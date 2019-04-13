@@ -21,36 +21,38 @@
 //Macros to write in the window list
 #define writeTopRow() win_ptr->window[0]=perm_ptr->permutation[0];win_ptr->window[1]=perm_ptr->permutation[1];win_ptr->window[2]=perm_ptr->permutation[2]
 #define writeBottomRow(A, B, C) win_ptr->window[3]=A;win_ptr->window[4]=B;win_ptr->window[5]=C
-#define writeWindow(A, B, C) writeTopRow();writeBottomRow(A, B, C);win_ptr=addWindow(win_ptr)
+#define writeWindow(A, B, C) writeTopRow();writeBottomRow(A, B, C);win_ptr=add_window(win_ptr)
 
 //Macros to write in the formula file
-#define writeLiteralId(I, J, X) fprintf(formula, "%li ", literalId(I, J, X, prop));literals++
-#define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%li ", literalId(I, J, X, prop));literals++
+#define writeLiteralId(I, J, X) fprintf(formula, "%li ", literal_id(I, J, X, prop));literals++
+#define writeLiteralIdNegated(I, J, X) fprintf(formula, "-%li ", literal_id(I, J, X, prop));literals++
 #define writeFreshLiteral(X) fprintf(formula, "%li ", X);literals++
 #define writeFreshLiteralNegated(X) fprintf(formula, "-%li ", X);literals++
 #define writeWindowElement(I, J, N) writeLiteralId(I, J, (isStateWindow(win_ptr->window[N]) ? \
                                     decodeStateId(win_ptr->window[N])+prop->alphabet_length : \
-                                    symbolId(win_ptr->window[N], prop)))
-#define endClause() fprintf(formula, "0\n");clauses++
+                                    symbol_id(win_ptr->window[N], prop))) //TODO maybe surround multiple statements with {}
+#define endClause() fprintf(formula, "0\n");clauses++                     //TODO add unsigneds and add proper assignements to structs like x = {..., ..., ...}
 
 //Removes whitespace and newlines
-int normalizeInput(FILE * dest, FILE * src);
+static int normalize_input(FILE * dest, FILE * src);
 //Given a string src writes a string of all unique chars in dest
-void getAlphabet(char * dest, char * src, int len);
+static void get_alphabet(char * dest, char * src, int len);
 
+#ifdef FORMULA
 //Returns unique literal id that identifies the symbol s_id in the cell [i,j]
-long literalId(int i, int j, int s_id, tm_properties * prop);
+static long literal_id(int i, int j, int s_id, tm_properties * prop);
 //Returns state index in the states array
-int stateId(int s, tm_properties * prop);
+static int state_id(int s, tm_properties * prop);
 //Returns symbol index in the alphabet array
-int symbolId(char c, tm_properties * prop);
+static int symbol_id(char c, tm_properties * prop);
 //The highest literal id is in the bottom right corner, it will always be the accept state
-long maxLiteralId(tm_properties * prop);
+static long max_literaL_id(tm_properties * prop);
 
 //Using legal permutations and delta, generates a list of all possible legal windows
-void calculateLegalWindows(window_node * legal_windows, tm_properties * prop);
+static void calculate_legaL_windows(window_node * legal_windows, tm_properties * prop);
 //Generates a list of all possible permutations in the upper window row, excluding illegal permutations
-void calculatePermutations(permutation_node * l, tm_properties * prop);
+static void calculate_permutations(permutation_node * l, tm_properties * prop);
+#endif
 
 int main(int argc, char const *argv[]){
     FILE * input = fopen(INPUTFILE, "r");
@@ -70,35 +72,35 @@ int main(int argc, char const *argv[]){
     tape->next = NULL;
     head = tape;
 
-    readInt(state_list, str_state_num);
+    read_int(state_list, str_state_num);
     curr_state = atoi(str_state_num); //initial state
     rewind(state_list);
 
-    if(normalizeInput(input_clean, input) != -1){ //remove whitespace and newlines
+    if(normalize_input(input_clean, input) != -1){ //remove whitespace and newlines
         c = fgetc(input_clean);
         head->elem = c;
         curr_symbol = c;
 
         while((c = fgetc(input_clean)) != EOF)
-            listAdd(tape, c);
+            add_char(tape, c);
         rewind(input_clean);
 
 #ifdef FORMULA
         //Calculate input alphabet
         prop = malloc(sizeof(tm_properties));
-        len = countChars(input_clean);
+        len = count_chars(input_clean);
         prop->alphabet = malloc(sizeof(char)*(len+3)); //# and _ are included
         prop->input_string = malloc(sizeof(char)*(len+1));
-        listToString(tape, prop->input_string);
-        getAlphabet(prop->alphabet, prop->input_string, len); 
+        tape_to_str(tape, prop->input_string);
+        get_alphabet(prop->alphabet, prop->input_string, len); 
         prop->alphabet_length = strlen(prop->alphabet);
 
         //Get state list
-        len = countLines(state_list)-1;
+        len = count_lines(state_list)-1;
         prop->states_length = len+2; //-1 and -2 (reject and accept) are included
         prop->states = malloc((len+2)*sizeof(int));
         for(i = 0; i < len; ++i){
-            readInt(state_list, str_state_num);
+            read_int(state_list, str_state_num);
             prop->states[i] = atoi(str_state_num);
         }
         prop->states[i] = -1; 
@@ -109,9 +111,9 @@ int main(int argc, char const *argv[]){
             clearConsole();
             printf("Computation steps: %d\n", curr_steps);
             printf("State: %d\n", curr_state);
-            printTape(tape, head_offset);
+            print_tape(tape, head_offset);
             tr = delta(curr_state, curr_symbol);
-            printTransition(curr_state, curr_symbol, tr);
+            print_transition(curr_state, curr_symbol, tr);
             curr_state = tr->state;
             head->elem = tr->symbol;
 
@@ -121,7 +123,7 @@ int main(int argc, char const *argv[]){
                 head = head->prev;
             }else if(tr->move == RIGHT){
                 if(head->next == NULL)
-                    head->next = blankNode(head);
+                    head->next = blank_node(head);
                 head_offset++;
                 head = head->next;
             }
@@ -159,24 +161,25 @@ int main(int argc, char const *argv[]){
     }
 
     free(tr);
-    listDeallocateChar(tape);
+    list_dealloc_char(tape);
     fclose(input);
     fclose(input_clean);
     fclose(state_list);
     system("rm ./tm.out"); //remove this executable
-    system("rm input_string_clean;rm state_list"); //TODO use filename macro
+    system("rm " INPUTCLEANFILE ";rm " STATESFILE);
 
 #ifdef FORMULA
     if(!inputError){
-        FILE * formula = fopen(FORMULAFILE, "w+");
-        prop->tot_steps = curr_steps;
-        printProperties(prop);
 
-        //Use user input as upper bound
-        #ifdef STEPS
-            printf("Using %d as maximum amount of steps instead of %d\n\n", STEPS, prop->tot_steps);
+        #ifdef STEPS //Use user input as upper bound
+            printf("Using %d as maximum amount of steps instead of %d\n\n", STEPS, curr_steps);
             prop->tot_steps = STEPS;
+        #else
+            prop->tot_steps = curr_steps;
         #endif
+
+        FILE * formula = fopen(FORMULAFILE, "w+");
+        print_properties(prop);
 
         //Calculate the 4 parts of the formula
         int k, h, win_len, input_length = strlen(prop->input_string);
@@ -191,13 +194,14 @@ int main(int argc, char const *argv[]){
         printf("Tableau size\nHeight: %d\nWidth: %d\n\n", prop->table_height, prop->table_width);
         printf("Computing formula ...\n");
 
-        //[i,j] identifies the position of each cell
-        //Cell symbols = {alphabet}U{states}
-        //This set will be implemented like this:
-        //cell_sym = "#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
-        //indexes of this "imaginary" array identify each possible cell symbol
-        //these indexes, combined with the cell position [i,j], are used to get the unique literal id in symbolId()
-        //i,j are 1-based, cell_sym is 0-based  
+        /* [i,j] identifies the position of each cell
+         * Cell symbols = {alphabet}U{states}
+         * This set will be implemented like this:
+         * cell_sym = "#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
+         * indexes of this "imaginary" array identify each possible cell symbol
+         * these indexes, combined with the cell position [i,j], are used to get the unique literal id in symbol_id()
+         * i,j are 1-based, cell_sym is 0-based
+         */  
 
         //Phi-start
         printf("Computing phi-start ...\n");
@@ -206,20 +210,20 @@ int main(int argc, char const *argv[]){
             fprintf(formula, " ");
         fprintf(formula, "\n");
         fprintf(formula, "c ##### Phi-start #####\n");
-        writeLiteralId(1, 1, symbolId('#', prop));
+        writeLiteralId(1, 1, symbol_id('#', prop));
         endClause();
         writeLiteralId(1, 2, initial_state_id);
         endClause();
         fflush(formula);
         for(j = 0; j < input_length; ++j){
-            writeLiteralId(1, j+3, symbolId(prop->input_string[j], prop));
+            writeLiteralId(1, j+3, symbol_id(prop->input_string[j], prop));
             endClause();
         }
         for(j += 3; j < prop->table_width; ++j){
-            writeLiteralId(1, j, symbolId('_', prop));
+            writeLiteralId(1, j, symbol_id('_', prop));
             endClause();
         }
-        writeLiteralId(1, j, symbolId('#', prop));
+        writeLiteralId(1, j, symbol_id('#', prop));
         endClause();
         fflush(formula);
 
@@ -266,14 +270,14 @@ int main(int argc, char const *argv[]){
         printf("Computing phi-move ...\n");
         window_node * legal_windows = malloc(sizeof(window_node));
         window_node * win_ptr;
-        calculateLegalWindows(legal_windows, prop);
+        calculate_legaL_windows(legal_windows, prop);
 
         //Write while converting legal windows in conjunctive normal form
         printf("Converting into cnf ...\n");
         long curr_max_id, dnf_clause_var;
 
-        win_len = listLengthWindows(legal_windows)-1;
-        curr_max_id = maxLiteralId(prop)+1;
+        win_len = list_len_window(legal_windows)-1;
+        curr_max_id = max_literaL_id(prop)+1;
 
         for(i = 1; i < prop->table_height; ++i){
             for(j = 2; j < prop->table_width; ++j){
@@ -325,9 +329,9 @@ int main(int argc, char const *argv[]){
         while(c != '@') //used as placeholder
             c = fgetc(formula);
         fseek(formula, -1, SEEK_CUR);
-        writeLong(formula, curr_max_id-1);
+        write_long(formula, curr_max_id-1);
         fprintf(formula, " ");
-        writeLong(formula, clauses);
+        write_long(formula, clauses);
         fprintf(formula, "\n");
         if(fgetc(formula) == ' '){
             fseek(formula, -1, SEEK_CUR);
@@ -337,7 +341,7 @@ int main(int argc, char const *argv[]){
         printf("Done.\n");
         printf("Literals:%li Variables:%li Clauses:%li\n", literals, curr_max_id-1, clauses);
 
-        listDeallocateWin(legal_windows);
+        list_dealloc_windows(legal_windows);
         fclose(formula);
     }
 #endif//FORMULA
@@ -345,7 +349,7 @@ int main(int argc, char const *argv[]){
     return EXIT_SUCCESS;
 }
 
-int normalizeInput(FILE * dest, FILE * src){
+static int normalize_input(FILE * dest, FILE * src){
     char c;
     while((c = fgetc(src)) != EOF){
         if(c == '#' || c == '_'){
@@ -359,7 +363,7 @@ int normalizeInput(FILE * dest, FILE * src){
     return 0;
 }
 
-void getAlphabet(char * dest, char * src, int len){
+static void get_alphabet(char * dest, char * src, int len){
     int i = 0, k = 2;
     dest[0] = '#';
     dest[1] = '_';
@@ -372,226 +376,231 @@ void getAlphabet(char * dest, char * src, int len){
     dest[k] = '\0';
 }
 
-//s_id is an index of this "imaginary" array of all possible cell symbols:
-//cell_sym = "#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
-long literalId(int i, int j, int s_id, tm_properties * prop){
-    int cell_sym_len = prop->alphabet_length + prop->states_length;
-    int offset = -cell_sym_len+s_id+1;
+#ifdef FORMULA
+    /* s_id is an index of this "imaginary" array of all possible cell symbols:
+     * cell_sym = "#,_, ...alphabet..., ...states..., -1, -2" where -1 and -2 are reject and accept
+     */
+    static long literal_id(int i, int j, int s_id, tm_properties * prop){
+        int cell_sym_len = prop->alphabet_length + prop->states_length;
+        int offset = -cell_sym_len+s_id+1;
 
-    return (i-1)*prop->table_width*cell_sym_len + (j*cell_sym_len) + offset;
-}
-
-int stateId(int s, tm_properties * prop){
-    for(int i = 0; i < prop->states_length; ++i){
-        if (prop->states[i] == s)
-            return i;
+        return (i-1)*prop->table_width*cell_sym_len + (j*cell_sym_len) + offset;
     }
 
-    return -1;
-}
+    static int state_id(int s, tm_properties * prop){
+        for(int i = 0; i < prop->states_length; ++i){
+            if (prop->states[i] == s)
+                return i;
+        }
 
-int symbolId(char c, tm_properties * prop){
-    for(int i = 0; i < prop->alphabet_length; ++i){
-        if (prop->alphabet[i] == c)
-            return i;
+        return -1;
     }
 
-    return -1;
-}
+    static int symbol_id(char c, tm_properties * prop){
+        for(int i = 0; i < prop->alphabet_length; ++i){
+            if (prop->alphabet[i] == c)
+                return i;
+        }
 
-long maxLiteralId(tm_properties * prop){ 
-    int accept_state_id = prop->alphabet_length + prop->states_length - 1;
-    return literalId(prop->table_height, prop->table_width, accept_state_id, prop);
-}
+        return -1;
+    }
 
-void calculateLegalWindows(window_node * legal_windows, tm_properties * prop){
-    window_node * win_ptr = legal_windows;
-    int i, j, acc_state_id = prop->states_length-1, rej_state_id = prop->states_length-2; 
-    int cell_sym_len = prop->alphabet_length + prop->states_length;
-    transition * tr = malloc(sizeof(transition));
-    permutation_node * permutations = malloc(sizeof(permutation_node)); 
-    permutation_node * perm_ptr = permutations;
+    static long max_literaL_id(tm_properties * prop){ 
+        int accept_state_id = prop->alphabet_length + prop->states_length - 1;
+        return literal_id(prop->table_height, prop->table_width, accept_state_id, prop);
+    }
 
-    //Permutations and windows are actually integers arrays treated as char arrays, where negative integers are states
-    calculatePermutations(permutations, prop);
+    static void calculate_legaL_windows(window_node * legal_windows, tm_properties * prop){
+        window_node * win_ptr = legal_windows;
+        int i, j, acc_state_id = prop->states_length-1, rej_state_id = prop->states_length-2; 
+        int cell_sym_len = prop->alphabet_length + prop->states_length;
+        transition * tr = malloc(sizeof(transition));
+        permutation_node * permutations = malloc(sizeof(permutation_node)); 
+        permutation_node * perm_ptr = permutations;
 
-    //For each permutation: write all possible window bottom rows in newly created windows by using the transition function delta
-    while(perm_ptr->next != NULL){
+        //Permutations and windows are actually integers arrays treated as char arrays, where negative integers are states
+        calculate_permutations(permutations, prop);
 
-        //CASE 1: There are no states in the permutation
-        if(!isStateWindow(perm_ptr->permutation[0]) && 
-           !isStateWindow(perm_ptr->permutation[1]) && 
-           !isStateWindow(perm_ptr->permutation[2]))
-        {
-            //'_' in these comments means an information we don't care about
-            //Symbols remain the same (trivial)
-            writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], perm_ptr->permutation[2]);
+        //For each permutation: write all possible window bottom rows in newly created windows by using the transition function delta
+        while(perm_ptr->next != NULL){
 
-            //State appears from the left
-            //See if there are transitions (_,s[0])->(qx,_,R) 
-            for(i = 0; i < prop->states_length-2; ++i){ //exclude accept and reject
-                tr = delta(prop->states[i], perm_ptr->permutation[0]);
-                if(tr->move == RIGHT){
-                    writeWindow(encodeStateId(stateId(tr->state, prop)), perm_ptr->permutation[1], perm_ptr->permutation[2]);
+            //CASE 1: There are no states in the permutation
+            if(!isStateWindow(perm_ptr->permutation[0]) && 
+               !isStateWindow(perm_ptr->permutation[1]) && 
+               !isStateWindow(perm_ptr->permutation[2]))
+            {
+                //'_' in these comments means an information we don't care about
+                //Symbols remain the same (trivial)
+                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], perm_ptr->permutation[2]);
+
+                //State appears from the left
+                //See if there are transitions (_,s[0])->(qx,_,R) 
+                for(i = 0; i < prop->states_length-2; ++i){ //exclude accept and reject
+                    tr = delta(prop->states[i], perm_ptr->permutation[0]);
+                    if(tr->move == RIGHT){
+                        writeWindow(encodeStateId(state_id(tr->state, prop)), perm_ptr->permutation[1], perm_ptr->permutation[2]);
+                    }
                 }
-            }
 
-            //Only left symbol is modified
-            //See if there are transitions (_,s[0])->(_,s,L)
-            for(i = 0; i < prop->states_length-2; ++i){ //exclude accept and reject
-                tr = delta(prop->states[i], perm_ptr->permutation[0]);
-                if(tr->move == LEFT){
-                    writeWindow(tr->symbol, perm_ptr->permutation[1], perm_ptr->permutation[2]);
+                //Only left symbol is modified
+                //See if there are transitions (_,s[0])->(_,s,L)
+                for(i = 0; i < prop->states_length-2; ++i){ //exclude accept and reject
+                    tr = delta(prop->states[i], perm_ptr->permutation[0]);
+                    if(tr->move == LEFT){
+                        writeWindow(tr->symbol, perm_ptr->permutation[1], perm_ptr->permutation[2]);
+                    }
                 }
-            }
 
-            //State appears from the right (added exception for delimiter '#')
-            //See if there are transitions (_,_)->(qx,_,L)
-            if(perm_ptr->permutation[2] != '#'){ //can't appear from the right if there's a delimiter
-                for(i = 0; i < prop->states_length-2; ++i){
-                    for(j = 0; j < prop->alphabet_length; ++j){
-                        tr = delta(prop->states[i], prop->alphabet[j]);
-                        if(tr->move == LEFT){
-                            writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(stateId(tr->state, prop)));
+                //State appears from the right (added exception for delimiter '#')
+                //See if there are transitions (_,_)->(qx,_,L)
+                if(perm_ptr->permutation[2] != '#'){ //can't appear from the right if there's a delimiter
+                    for(i = 0; i < prop->states_length-2; ++i){
+                        for(j = 0; j < prop->alphabet_length; ++j){
+                            tr = delta(prop->states[i], prop->alphabet[j]);
+                            if(tr->move == LEFT){
+                                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(state_id(tr->state, prop)));
+                            }
                         }
                     }
                 }
-            }
 
-        //CASE 2: States are present in the permutation
-        }else{
-            if(isAccOrRejState(perm_ptr->permutation[0]) ||
-               isAccOrRejState(perm_ptr->permutation[1]) ||
-               isAccOrRejState(perm_ptr->permutation[2]))
-            {
-                //Symbols remain the same, this is a special "static" transition for acc and rej
-                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], perm_ptr->permutation[2]);
+            //CASE 2: States are present in the permutation
             }else{
+                if(isAccOrRejState(perm_ptr->permutation[0]) ||
+                   isAccOrRejState(perm_ptr->permutation[1]) ||
+                   isAccOrRejState(perm_ptr->permutation[2]))
+                {
+                    //Symbols remain the same, this is a special "static" transition for acc and rej
+                    writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], perm_ptr->permutation[2]);
+                }else{
 
-                //State is in the left side
-                if(isStateWindow(perm_ptr->permutation[0])){
-                    tr = delta(prop->states[decodeStateId(perm_ptr->permutation[0])], perm_ptr->permutation[1]);
-                    switch(tr->move){
-                        //State disappears to the left, unknown symbol appears from the left (but it can't be the delimiter '#')
-                        //See if there are transitions (q[0],s[1])->(_,s,L)
-                        case LEFT:
-                            for(j = 1; j < prop->alphabet_length; ++j){ //start from 1 to exclude delimiter
-                                writeWindow(prop->alphabet[j], tr->symbol, perm_ptr->permutation[2]);   
-                            }
-                        break;
-
-                        //State moves from left to center
-                        //See if there are transitions (q[0],s[1])->(q,s,R)
-                        case RIGHT:
-                            writeWindow(tr->symbol, encodeStateId(stateId(tr->state, prop)), perm_ptr->permutation[2]); 
-                        break;
-
-                        //Acc and rej, See if there are transitions (q[0],s[1])->ACCEPT/REJECT
-                        case ACCEPT:
-                            writeWindow(encodeStateId(acc_state_id), perm_ptr->permutation[1], perm_ptr->permutation[2]);
-                        break;
-                        case REJECT:
-                            writeWindow(encodeStateId(rej_state_id), perm_ptr->permutation[1], perm_ptr->permutation[2]);
-                        break;
-                        default:
-                        break;
-                    }
-
-                //State is in the center
-                }else if(isStateWindow(perm_ptr->permutation[1])){
-                    tr = delta(prop->states[decodeStateId(perm_ptr->permutation[1])], perm_ptr->permutation[2]);
-                    switch(tr->move){
-                        //State moves from center to left (added exception for delimiter '#')
-                        //See if there are transitions (q[1],s[2])->(q,s,L)
-                        case LEFT:
-                            if(perm_ptr->permutation[0] != '#'){ //can't move to the left if there's a delimiter
-                                writeWindow(encodeStateId(stateId(tr->state, prop)), perm_ptr->permutation[0], tr->symbol); 
-                            } 
-                        break;
-
-                        //State moves from center to right 
-                        //See if there are transitions (q[1],s[2])->(q,s,R)
-                        case RIGHT:
-                            writeWindow(perm_ptr->permutation[0], tr->symbol, encodeStateId(stateId(tr->state, prop))); 
-                        break;
-
-                        //Acc and rej, See if there are transitions (q[1],s[2])->ACCEPT/REJECT
-                        case ACCEPT:
-                            writeWindow(perm_ptr->permutation[0], encodeStateId(acc_state_id), perm_ptr->permutation[2]);
-                        break;
-                        case REJECT:
-                            writeWindow(perm_ptr->permutation[0], encodeStateId(rej_state_id), perm_ptr->permutation[2]);
-                        break;
-                        default:
-                        break;
-                    }
-
-                //State is in the right side    
-                }else{  
-                    for(j = 0; j < prop->alphabet_length; ++j){ 
-                        tr = delta(prop->states[decodeStateId(perm_ptr->permutation[2])], prop->alphabet[j]);
+                    //State is in the left side
+                    if(isStateWindow(perm_ptr->permutation[0])){
+                        tr = delta(prop->states[decodeStateId(perm_ptr->permutation[0])], perm_ptr->permutation[1]);
                         switch(tr->move){
-                            //State moves from right to center
-                            //See if there are transitions (q[2],_)->(q,_,L)
+                            //State disappears to the left, unknown symbol appears from the left (but it can't be the delimiter '#')
+                            //See if there are transitions (q[0],s[1])->(_,s,L)
                             case LEFT:
-                                writeWindow(perm_ptr->permutation[0], encodeStateId(stateId(tr->state, prop)), perm_ptr->permutation[1]);
+                                for(j = 1; j < prop->alphabet_length; ++j){ //start from 1 to exclude delimiter
+                                    writeWindow(prop->alphabet[j], tr->symbol, perm_ptr->permutation[2]);   
+                                }
                             break;
 
-                            //State disappears to the right, written symbol appears from the right
-                            //See if there are transitions (q[2],_)->(_,s,R) 
+                            //State moves from left to center
+                            //See if there are transitions (q[0],s[1])->(q,s,R)
                             case RIGHT:
-                                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], tr->symbol);
+                                writeWindow(tr->symbol, encodeStateId(state_id(tr->state, prop)), perm_ptr->permutation[2]); 
                             break;
 
-                            //Acc and rej, See if there are transitions (q[2],_)->ACCEPT/REJECT
+                            //Acc and rej, See if there are transitions (q[0],s[1])->ACCEPT/REJECT
                             case ACCEPT:
-                                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(acc_state_id));
+                                writeWindow(encodeStateId(acc_state_id), perm_ptr->permutation[1], perm_ptr->permutation[2]);
                             break;
                             case REJECT:
-                                writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(rej_state_id));
+                                writeWindow(encodeStateId(rej_state_id), perm_ptr->permutation[1], perm_ptr->permutation[2]);
                             break;
                             default:
                             break;
                         }
+
+                    //State is in the center
+                    }else if(isStateWindow(perm_ptr->permutation[1])){
+                        tr = delta(prop->states[decodeStateId(perm_ptr->permutation[1])], perm_ptr->permutation[2]);
+                        switch(tr->move){
+                            //State moves from center to left (added exception for delimiter '#')
+                            //See if there are transitions (q[1],s[2])->(q,s,L)
+                            case LEFT:
+                                if(perm_ptr->permutation[0] != '#'){ //can't move to the left if there's a delimiter
+                                    writeWindow(encodeStateId(state_id(tr->state, prop)), perm_ptr->permutation[0], tr->symbol); 
+                                } 
+                            break;
+
+                            //State moves from center to right 
+                            //See if there are transitions (q[1],s[2])->(q,s,R)
+                            case RIGHT:
+                                writeWindow(perm_ptr->permutation[0], tr->symbol, encodeStateId(state_id(tr->state, prop))); 
+                            break;
+
+                            //Acc and rej, See if there are transitions (q[1],s[2])->ACCEPT/REJECT
+                            case ACCEPT:
+                                writeWindow(perm_ptr->permutation[0], encodeStateId(acc_state_id), perm_ptr->permutation[2]);
+                            break;
+                            case REJECT:
+                                writeWindow(perm_ptr->permutation[0], encodeStateId(rej_state_id), perm_ptr->permutation[2]);
+                            break;
+                            default:
+                            break;
+                        }
+
+                    //State is in the right side    
+                    }else{  
+                        for(j = 0; j < prop->alphabet_length; ++j){ 
+                            tr = delta(prop->states[decodeStateId(perm_ptr->permutation[2])], prop->alphabet[j]);
+                            switch(tr->move){
+                                //State moves from right to center
+                                //See if there are transitions (q[2],_)->(q,_,L)
+                                case LEFT:
+                                    writeWindow(perm_ptr->permutation[0], encodeStateId(state_id(tr->state, prop)), perm_ptr->permutation[1]);
+                                break;
+
+                                //State disappears to the right, written symbol appears from the right
+                                //See if there are transitions (q[2],_)->(_,s,R) 
+                                case RIGHT:
+                                    writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], tr->symbol);
+                                break;
+
+                                //Acc and rej, See if there are transitions (q[2],_)->ACCEPT/REJECT
+                                case ACCEPT:
+                                    writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(acc_state_id));
+                                break;
+                                case REJECT:
+                                    writeWindow(perm_ptr->permutation[0], perm_ptr->permutation[1], encodeStateId(rej_state_id));
+                                break;
+                                default:
+                                break;
+                            }
+                        }
                     }
                 }
-            }
-        }   
-
-        perm_ptr = perm_ptr->next;
-    }
-    
-    listDeallocatePerm(permutations);
-}
-
-void calculatePermutations(permutation_node * l, tm_properties * prop){
-    int cell_sym_len = prop->alphabet_length + prop->states_length;
-
-    for(int i = 0; i < cell_sym_len; ++i){
-        for(int j = 0; j < cell_sym_len; ++j){
-            for(int k = 0; k < cell_sym_len; ++k){
-
-                //first part excludes #s# s#s ##s s##
-                //second part excludes duplicate state occurrences
-                //third part excludes states next to a right delimiter like _q#
-                if(((i != 0 || k != 0) && (j != 0)) 
-                    &&
-                  ((isState(i) && !isState(j) && !isState(k)) || (!isState(i) && isState(j) && !isState(k)) || 
-                   (!isState(i) && !isState(j) && isState(k)) || (!isState(i) && !isState(j) && !isState(k)))
-                    &&
-                  !(isState(j) && k == 0))
-                {
-                    //In windows state ids are encoded as negative numbers
-                    //Alphabet symbols are actual chars and "states ids" are just indexes of the states array
-                    //This is done for efficiency in calculateLegalWindows() 
-                    //because delta takes chars and actual state numbers as input, not ids
-                    l->permutation[0] = (isState(i) ? encodeStateId(i-prop->alphabet_length) : prop->alphabet[i]); 
-                    l->permutation[1] = (isState(j) ? encodeStateId(j-prop->alphabet_length) : prop->alphabet[j]);
-                    l->permutation[2] = (isState(k) ? encodeStateId(k-prop->alphabet_length) : prop->alphabet[k]);
-                    l = addPermutation(l);
-                }
-
             }   
+
+            perm_ptr = perm_ptr->next;
+        }
+        
+        list_dealloc_permutations(permutations);
+    }
+
+    static void calculate_permutations(permutation_node * l, tm_properties * prop){
+        int cell_sym_len = prop->alphabet_length + prop->states_length;
+
+        for(int i = 0; i < cell_sym_len; ++i){
+            for(int j = 0; j < cell_sym_len; ++j){
+                for(int k = 0; k < cell_sym_len; ++k){
+
+                    /* First part excludes #s# s#s ##s s##
+                     * Second part excludes duplicate state occurrences
+                     * Third part excludes states next to a right delimiter like _q#
+                     */
+                    if(((i != 0 || k != 0) && (j != 0)) 
+                        &&
+                      ((isState(i) && !isState(j) && !isState(k)) || (!isState(i) && isState(j) && !isState(k)) || 
+                       (!isState(i) && !isState(j) && isState(k)) || (!isState(i) && !isState(j) && !isState(k)))
+                        &&
+                      !(isState(j) && k == 0))
+                    {
+                        /* In windows state ids are encoded as negative numbers
+                         * Alphabet symbols are actual chars and "states ids" are just indexes of the states array
+                         * This is done for efficiency in calculate_legaL_windows() 
+                         * because delta takes chars and actual state numbers as input, not ids
+                         */
+                        l->permutation[0] = (isState(i) ? encodeStateId(i-prop->alphabet_length) : prop->alphabet[i]); 
+                        l->permutation[1] = (isState(j) ? encodeStateId(j-prop->alphabet_length) : prop->alphabet[j]);
+                        l->permutation[2] = (isState(k) ? encodeStateId(k-prop->alphabet_length) : prop->alphabet[k]);
+                        l = add_permutation(l);
+                    }
+
+                }   
+            }
         }
     }
-}
+#endif//FORMULA

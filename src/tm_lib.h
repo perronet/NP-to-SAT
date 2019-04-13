@@ -8,10 +8,10 @@
 #include <string.h>
 #include <limits.h>
 
-//Macros
+/* Macros */
 
-#define MAX_INT_DIGITS countDigitsInt(INT_MAX)
-#define MAX_LONG_DIGITS countDigitsLong(LONG_MAX)
+#define MAX_INT_DIGITS count_digits_int(INT_MAX)
+#define MAX_LONG_DIGITS count_digits_long(LONG_MAX)
 #define MAX_SLEEP_TIME_DIGITS 5
 #define DEFAULT_SLEEP_TIME "500"
 #define true 1
@@ -20,7 +20,7 @@
 #define min(X, Y) ((X) < (Y) ? (X) : (Y))
 #define max(X, Y) ((X) > (Y) ? (X) : (Y))
 
-//Structures
+/* Structures */
 
 typedef char bool;
 
@@ -66,45 +66,45 @@ typedef struct tm_properties{
     int table_width;
 } tm_properties;
 
-//Functions
+/* Functions */
 
 //List
-char_node * listAdd(char_node * l, char e);
-window_node * addWindow(window_node * last);
-permutation_node * addPermutation(permutation_node * last);
-int listLength(char_node * l);
-int listLengthWindows(window_node * l);
-void listToString(char_node * l, char * str);
-char * listToStringNew(char_node * l);
+char_node * add_char(char_node * l, char e);
+window_node * add_window(window_node * last);
+permutation_node * add_permutation(permutation_node * last);
+int list_len_char(char_node * l);
+int list_len_window(window_node * l);
+void tape_to_str(char_node * l, char * str);
+char * tape_to_str_new(char_node * l);
 
 //Prints
-void printList(char_node * l);
-void printWindows(window_node * l);
-void printSingleWindow(int * w);
-void printPermutations(permutation_node * l);
-void printSinglePermutation(int * p);
-void printProperties(tm_properties * prop);
-void printArray(int * a, int len);
-void printTape(char_node * tape, int head_offset);
-void printTransition(int state, char symbol, transition * tr);
+void print_chars(char_node * l);
+void print_windows(window_node * l);
+void print_single_window(int * w);
+void print_permutations(permutation_node * l);
+void print_single_permutation(int * p);
+void print_properties(tm_properties * prop);
+void print_array(int * a, int len);
+void print_tape(char_node * tape, int head_offset);
+void print_transition(int state, char symbol, transition * tr);
 
 //File manipulation
-int countChars(FILE * f);
-int countLines(FILE * f);
-int readInt(FILE * f, char * dest);
-void writeInt(FILE * f, int n);
-void writeLong(FILE * f, long n);
+int count_chars(FILE * f);
+int count_lines(FILE * f);
+int read_int(FILE * f, char * dest);
+void write_int(FILE * f, int n);
+void write_long(FILE * f, long n);
 
 //Deallocators
-void listDeallocateChar(char_node * l);
-void listDeallocatePerm(permutation_node * l);
-void listDeallocateWin(window_node * l);
+void list_dealloc_char(char_node * l);
+void list_dealloc_permutations(permutation_node * l);
+void list_dealloc_windows(window_node * l);
 
 //Utils
-char_node * blankNode(char_node * prev);
+char_node * blank_node(char_node * prev);
 bool contains(char * str, char c, int len);
-char * enumToString(char * str, enum action a);
-int countDigitsInt(int n);
-int countDigitsLong(long n);
+char * enum_to_string(char * str, enum action a); //replace this with macro
+int count_digits_int(int n);
+int count_digits_long(long n);
 
 #endif
