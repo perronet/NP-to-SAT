@@ -15,7 +15,7 @@ It's important to note that if the machine rejects then the resulting upper boun
 
 For example: Suppose the machine rejected at the first step and the input was 5 characters long, with a limit of only one step the machine wouldn't even be able to scan the whole input. So if the machine rejects you should try to give an higher upper bound, though because the machine rejected the formula will still be unsatisfiable for any bound.
 
-Be wary that because of the nature of the formula, big upper bounds will make the formula grow. You can't predict how many steps the machine needs to halt. //TODO finish this section
+Be wary that because of the nature of the formula, big upper bounds will make the formula grow. You can't predict how many steps the machine needs to halt.
 
 ## Quick start
 * Write your Turing Machine program in `input_program`, according to the syntax. (TODO add examples dir). 
