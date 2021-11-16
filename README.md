@@ -9,8 +9,6 @@ The second part is an application of the [Cook-Levin Theorem](https://en.wikiped
 > Every problem in NP is reducible in polynomial time to a boolean formula that is satisfiable if and only if the original machine that solves the problem accepts its input.
 This also means, by definition, that SAT is [NP-complete](https://en.wikipedia.org/wiki/NP-completeness).
 
-//TODO history of computation, tableau which is just a "visual representation of the formula"
-
 In order to build this formula you need a maximum amount of computational steps, the machine must halt before this bound is reached. You can let the program simulate the Turing Machine to find this upper bound for the given input, or just input it yourself.
 
 It's important to note that if the machine rejects then the resulting upper bound won't be enough for the machine to even try to get a positive answer, so the resulting formula will be trivially unsatisfiable. 
@@ -20,7 +18,7 @@ For example: Suppose the machine rejected at the first step and the input was 5 
 Be wary that because of the nature of the formula, big upper bounds will make the formula grow. You can't predict how many steps the machine needs to halt. //TODO finish this section
 
 ## Quick start
-* Write your Turing Machine program in `input_program`, according to the syntax. You can find some programs in the examples folder (TODO add the examples folder). 
+* Write your Turing Machine program in `input_program`, according to the syntax. (TODO add examples dir). 
 * Write your input in `input_string`
 * Compile with `make`
 * Execute with `./run.out`. *To input the maximum computational steps just give it as an argument like* `./run.out 40`
